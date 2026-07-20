@@ -29,7 +29,7 @@ tutor. The main risk surfaces are:
 - Require elevated privileges beyond what Tauri's standard capabilities grant.
 
 This section will be revised as the hosted/cloud-bridge service (see
-[`docs/funding-plan.md`](docs/funding-plan.md)) comes online — that service will
+internal funding/roadmap docs) comes online — that service will
 have its own, separate risk surface (network-facing API, auth, multi-tenant data).
 
 ## Automated Checks
