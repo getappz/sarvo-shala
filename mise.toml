@@ -1,0 +1,21 @@
+# Swayam — tool versions (managed by mise)
+[tools]
+node = "22"
+bun = "latest"
+rust = "1.97"
+
+[env]
+# Keep Tauri/Cargo output inside the project
+CARGO_TERM_COLOR = "always"
+
+[tasks.dev]
+description = "Run the Tauri desktop app in dev mode"
+run = "cargo tauri dev"
+
+[tasks.build]
+description = "Build the release desktop bundle"
+run = "cargo tauri build"
+
+[tasks.web]
+description = "Run only the Vite frontend (browser preview)"
+run = "bun run dev"
