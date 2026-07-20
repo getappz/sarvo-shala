@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod error;
 mod models;
+mod pedagogy;
 
 use tauri::Manager;
 
