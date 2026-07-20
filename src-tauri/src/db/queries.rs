@@ -234,36 +234,33 @@ pub fn insert_quiz_session(db: &Db, chapter_id: i64, started_at: i64) -> Result<
     })
 }
 
-pub fn insert_quiz_answer(
+/// Atomically insert a graded answer for `(session_id, question_id)` unless
+/// one already exists. Returns `true` if this call performed the insert
+/// (i.e. it "won" the race) and `false` if an answer was already present.
+///
+/// A single `INSERT OR IGNORE` relying on the `uq_quiz_answer` unique index
+/// is used instead of a separate exists-check followed by an insert: two
+/// `db.with` calls would each release the connection mutex in between,
+/// leaving a window where a fast double-click (or two concurrent IPC calls)
+/// could both pass the check before either inserted. One statement under one
+/// `db.with` closure closes that window -- only one caller ever gets `true`,
+/// so only one caller ever runs the follow-up BKT/FSRS mastery update.
+pub fn insert_quiz_answer_if_absent(
     db: &Db,
     session_id: i64,
     question_id: i64,
     chosen_option_id: i64,
     correct: bool,
     answered_at: i64,
-) -> Result<(), AppError> {
-    db.with(|c| {
-        c.execute(
-            "INSERT INTO quiz_answers (session_id, question_id, chosen_option_id, correct, answered_at) VALUES (?1,?2,?3,?4,?5)",
+) -> Result<bool, AppError> {
+    let inserted = db.with(|c| {
+        let n = c.execute(
+            "INSERT OR IGNORE INTO quiz_answers (session_id, question_id, chosen_option_id, correct, answered_at) VALUES (?1,?2,?3,?4,?5)",
             (session_id, question_id, chosen_option_id, if correct { 1 } else { 0 }, answered_at),
         )?;
-        Ok(())
+        Ok(n > 0)
     })?;
-    Ok(())
-}
-
-/// Whether a graded answer already exists for `(session_id, question_id)`.
-/// Used to make `submit_answer` idempotent against a fast double-click that
-/// would otherwise double-count BKT/FSRS mastery and the score.
-pub fn quiz_answer_exists(db: &Db, session_id: i64, question_id: i64) -> Result<bool, AppError> {
-    let n: i64 = db.with(|c| {
-        c.query_row(
-            "SELECT count(*) FROM quiz_answers WHERE session_id = ?1 AND question_id = ?2",
-            (session_id, question_id),
-            |r| r.get(0),
-        )
-    })?;
-    Ok(n > 0)
+    Ok(inserted)
 }
 
 /// The chosen option id for an already-graded answer.
@@ -719,6 +716,36 @@ mod tests {
         assert_eq!(get_setting(&db, "language").unwrap().as_deref(), Some("hi"));
         assert_eq!(get_setting(&db, "grade").unwrap().as_deref(), Some("9"));
         assert_eq!(get_setting(&db, "missing").unwrap(), None);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn insert_quiz_answer_if_absent_only_inserts_once() {
+        let (db, p) = temp_db();
+        crate::db::seed::seed_if_empty(&db).unwrap();
+        let session = insert_quiz_session(&db, 1, 1_000_000).unwrap();
+        let correct_id = correct_option(&db, 1).unwrap();
+
+        let first =
+            insert_quiz_answer_if_absent(&db, session, 1, correct_id, true, 1_000_001).unwrap();
+        assert!(first, "first insert should win and report true");
+
+        // Same (session, question) again -- simulates a double-click or a
+        // racing concurrent call that lost the atomic insert.
+        let second =
+            insert_quiz_answer_if_absent(&db, session, 1, correct_id, true, 1_000_002).unwrap();
+        assert!(!second, "second insert should be a no-op and report false");
+
+        let count: i64 = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT count(*) FROM quiz_answers WHERE session_id = ?1 AND question_id = ?2",
+                    (session, 1),
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+        assert_eq!(count, 1, "only one row should ever be inserted");
         let _ = std::fs::remove_file(&p);
     }
 }
