@@ -1,4 +1,4 @@
-# Swayam — tool versions (managed by mise)
+# Sarvo Shala — tool versions (managed by mise)
 [tools]
 node = "22"
 bun = "latest"

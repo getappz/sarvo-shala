@@ -1,6 +1,6 @@
 # Naming Research — Swayam Rename
 
-**Date:** 2026-07-20 · **Status:** research complete, decision pending
+**Date:** 2026-07-20 · **Status:** DECIDED — **Sarvo Shala** (shala.sarvo.ai, Tauri id `ai.sarvo.shala`; in-app tutor persona: Ojasvi). Content-level rename executed on `devel`; directory rename deferred while opencode session is active.
 **Why:** "Swayam" collides with the Government of India's SWAYAM MOOC platform (swayam.gov.in, Ministry of Education). Pre-excluded roots: Swayam, Vidya, Guru, Gyan, Disha.
 
 ## Method

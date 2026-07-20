@@ -51,7 +51,7 @@ mod tests {
     fn temp_db() -> std::path::PathBuf {
         let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let mut p = std::env::temp_dir();
-        p.push(format!("swayam_test_{}_{}.db", std::process::id(), n));
+        p.push(format!("shala_test_{}_{}.db", std::process::id(), n));
         let _ = std::fs::remove_file(&p);
         p
     }

@@ -3,8 +3,8 @@ export type Lang = "en" | "hi";
 type Dict = Record<string, string>;
 
 const en: Dict = {
-  appName: "Swayam",
-  wizardTitle: "Welcome to Swayam",
+  appName: "Sarvo Shala",
+  wizardTitle: "Welcome to Sarvo Shala",
   chooseLanguage: "Choose language",
   chooseGrade: "Choose class",
   chooseBoard: "Choose board",
@@ -30,8 +30,8 @@ const en: Dict = {
 };
 
 const hi: Dict = {
-  appName: "स्वयं",
-  wizardTitle: "स्वयं में आपका स्वागत है",
+  appName: "सर्वो शाला",
+  wizardTitle: "सर्वो शाला में आपका स्वागत है",
   chooseLanguage: "भाषा चुनें",
   chooseGrade: "कक्षा चुनें",
   chooseBoard: "बोर्ड चुनें",

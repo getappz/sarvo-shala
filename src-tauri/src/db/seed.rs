@@ -263,7 +263,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let mut p = std::env::temp_dir();
-        p.push(format!("swayam_seed_{}.db", n));
+        p.push(format!("shala_seed_{}.db", n));
         let _ = std::fs::remove_file(&p);
         let db = Db::open_or_init(&p).unwrap();
         (db, p)
