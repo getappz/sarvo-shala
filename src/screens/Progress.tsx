@@ -25,13 +25,27 @@ export default function Progress({
   const [progress, setProgress] = useState<ConceptProgress[]>([]);
   const [due, setDue] = useState<ConceptProgress[]>([]);
   const [streak, setStreak] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProgress(chapter ? chapter.id : null).then(setProgress).catch(() => setProgress([]));
+    setLoading(true);
+    let pending = 3;
+    const done = () => {
+      pending -= 1;
+      if (pending === 0) setLoading(false);
+    };
+    getProgress(chapter ? chapter.id : null)
+      .then(setProgress)
+      .catch(() => setProgress([]))
+      .finally(done);
     getDue(Math.floor(Date.now() / 1000))
       .then(setDue)
-      .catch(() => setDue([]));
-    getStreak(todayString()).then(setStreak).catch(() => setStreak(0));
+      .catch(() => setDue([]))
+      .finally(done);
+    getStreak(todayString())
+      .then(setStreak)
+      .catch(() => setStreak(0))
+      .finally(done);
   }, [chapter]);
 
   return (
@@ -57,8 +71,10 @@ export default function Progress({
       </div>
 
       <h3>{t("dueForReview")}</h3>
-      {due.length === 0 ? (
+      {loading ? (
         <p className="muted">{t("loading")}</p>
+      ) : due.length === 0 ? (
+        <p className="muted">{t("noDue")}</p>
       ) : (
         <ul className="due-list">
           {due.map((c) => (

@@ -3,7 +3,6 @@
 /// Ported from the MIT-licensed OpenTutor reference
 /// (`apps/api/services/spaced_repetition/fsrs.py`). Weight constants `w0..w16`
 /// are taken verbatim from that file's `DEFAULT_W` FSRS-4.5 segment.
-
 const W: [f64; 17] = [
     0.4, 0.6, 2.4, 5.8, // w0-w3: initial stability per rating (Again..Easy)
     4.93, 0.94, // w4-w5: difficulty parameters
@@ -70,8 +69,9 @@ fn retrievability(elapsed_days: f64, stability: f64) -> f64 {
 
 fn next_stability(d: f64, s: f64, r: f64, rating: u8) -> f64 {
     if rating == 1 {
-        // Again — lapse
-        let v = W[11] * d.powf(-W[12]) * (s + 1.0).powf(W[13]) - 1.0;
+        // Again — lapse. FSRS-4.5: the `- 1` applies only to (S+1)^w13,
+        // not to the whole product (S'_fail = w11·D^-w12·[(S+1)^w13 − 1]·e^(w14·(1−R))).
+        let v = W[11] * d.powf(-W[12]) * ((s + 1.0).powf(W[13]) - 1.0);
         return (v * ((1.0 - r) * W[14]).exp()).max(0.1);
     }
     let hard_penalty = if rating == 2 { W[15] } else { 1.0 };

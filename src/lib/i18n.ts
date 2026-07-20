@@ -29,6 +29,13 @@ const en: Dict = {
   sampleContentNotice: "Sample content — not NCERT text.",
   loading: "Loading…",
   errorGeneric: "Something went wrong.",
+  weight: "weight",
+  noDue: "Nothing due for review. Nicely done!",
+  stateProbe: "Probe",
+  stateClarify: "Clarify",
+  stateConfront: "Confront",
+  stateScaffold: "Scaffold",
+  stateConfirm: "Confirm",
 };
 
 const hi: Dict = {
@@ -58,6 +65,13 @@ const hi: Dict = {
   sampleContentNotice: "नमूना सामग्री — एनसीईआरटी पाठ्य नहीं।",
   loading: "लोड हो रहा है…",
   errorGeneric: "कुछ गलत हुआ।",
+  weight: "भार",
+  noDue: "समीक्षा के लिए कुछ नहीं। बहुत बढ़िया!",
+  stateProbe: "प्रश्न",
+  stateClarify: "स्पष्ट",
+  stateConfront: "सामना",
+  stateScaffold: "सहायता",
+  stateConfirm: "पुष्टि",
 };
 
 export function t(key: string, lang: Lang): string {

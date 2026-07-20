@@ -12,30 +12,6 @@ fn now_secs() -> i64 {
         .unwrap_or(0)
 }
 
-/// Format a unix timestamp (seconds) as a UTC `YYYY-MM-DD` day string.
-fn day_string(now: i64) -> String {
-    let days = now.div_euclid(86400) + 719_163; // Unix epoch -> days since 0000-03-01
-    let mut y = 0i64;
-    let mut m = 0i64;
-    let mut d = 0i64;
-    civil_from_days(days, &mut y, &mut m, &mut d);
-    format!("{y:04}-{m:02}-{d:02}")
-}
-
-/// Reversed algorithm: days since 0000-03-01 -> civil (y, m, d).
-fn civil_from_days(z: i64, y: &mut i64, m: &mut i64, d: &mut i64) {
-    let zz = z + 306;
-    let era = if zz >= 0 { zz } else { zz - 146096 } / 146097;
-    let doe = zz - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y_ = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    *m = if mp < 10 { mp + 3 } else { mp - 9 };
-    *y = if *m <= 2 { y_ + 1 } else { y_ };
-    *d = doy - (153 * mp + 2) / 5 + 1;
-}
-
 fn layer_for(p_known: f64) -> i64 {
     if p_known < 0.4 {
         1
@@ -48,6 +24,8 @@ fn layer_for(p_known: f64) -> i64 {
 
 #[tauri::command]
 pub fn start_quiz(state: State<Db>, chapter_id: i64) -> Result<(i64, Vec<Question>), AppError> {
+    // Reject a bogus chapter id instead of silently returning an empty quiz.
+    queries::get_chapter(&state, chapter_id)?;
     let now = now_secs();
     let session_id = queries::insert_quiz_session(&state, chapter_id, now)?;
     let concepts = queries::concept_ids_for_chapter(&state, chapter_id)?;
@@ -73,8 +51,19 @@ pub fn submit_answer(
     session_id: i64,
     question_id: i64,
     chosen_option_id: i64,
+    day: String,
 ) -> Result<AnswerReview, AppError> {
     let now = now_secs();
+
+    // Idempotent: a fast double-click fires this twice for the same question.
+    // Return the already-graded result without re-running BKT/FSRS or the
+    // score upsert, which would otherwise double-count mastery.
+    if queries::quiz_answer_exists(&state, session_id, question_id)? {
+        let chosen = queries::existing_answer_choice(&state, session_id, question_id)?
+            .ok_or_else(|| AppError::NotFound(format!("answer for {question_id}")))?;
+        return queries::grade_answer(&state, question_id, chosen);
+    }
+
     let review = queries::grade_answer(&state, question_id, chosen_option_id)?;
     queries::insert_quiz_answer(
         &state,
@@ -141,7 +130,10 @@ pub fn submit_answer(
         updated.due,
     )?;
 
-    queries::upsert_study_day(&state, &day_string(now))?;
+    // `day` is the local calendar day supplied by the frontend, so study-day
+    // streaks agree with the student's local timezone (target audience is in
+    // IST, where a UTC day string would mis-attribute pre-dawn study).
+    queries::upsert_study_day(&state, &day)?;
 
     Ok(review)
 }
@@ -168,12 +160,11 @@ mod tests {
     use crate::pedagogy::bkt;
 
     fn seeded() -> (Db, std::path::PathBuf) {
-        let n = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let mut p = std::env::temp_dir();
-        p.push(format!("swayam_quiz_{}.db", n));
+        p.push(format!("swayam_quiz_{}_{}.db", std::process::id(), n));
         let _ = std::fs::remove_file(&p);
         let db = Db::open_or_init(&p).unwrap();
         seed::seed_if_empty(&db).unwrap();

@@ -94,9 +94,9 @@ pub struct ConceptProgress {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum StreamEvent {
-    Token { text: String },
-    StateChange { state: String },
-    Done { message_id: i64 },
+    Token { chapter_id: i64, text: String },
+    StateChange { chapter_id: i64, state: String },
+    Done { chapter_id: i64, message_id: i64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

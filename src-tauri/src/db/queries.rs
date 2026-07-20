@@ -5,13 +5,20 @@ use crate::models::{
 };
 use rusqlite::OptionalExtension;
 
-pub fn set_setting(db: &Db, key: &str, value: &str) -> Result<(), AppError> {
+/// Write several settings in a single transaction. Used by the wizard so a
+/// crash between writes cannot leave the settings half-applied.
+pub fn set_settings_bulk(db: &Db, pairs: &[(&str, &str)]) -> Result<(), AppError> {
     db.with(|c| {
-        c.execute(
-            "INSERT INTO settings (key, value) VALUES (?1, ?2)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            (key, value),
-        )
+        let tx = c.transaction()?;
+        for (key, value) in pairs {
+            tx.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )?;
+        }
+        tx.commit()?;
+        Ok::<(), rusqlite::Error>(())
     })?;
     Ok(())
 }
@@ -109,18 +116,6 @@ pub fn list_concepts(db: &Db, chapter_id: i64) -> Result<Vec<Concept>, AppError>
     Ok(rows)
 }
 
-pub fn chapter_snippets(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String)>, AppError> {
-    let rows = db.with(|c| {
-        let mut stmt =
-            c.prepare("SELECT id, body FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord")?;
-        let mapped = stmt.query_map([chapter_id], |r| {
-            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
-        })?;
-        mapped.collect::<rusqlite::Result<Vec<_>>>()
-    })?;
-    Ok(rows)
-}
-
 /// Rows of `chapter_text` for retrieval scoring: (id, body, ord).
 pub fn chapter_text_rows(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String, i64)>, AppError> {
     let rows = db.with(|c| {
@@ -138,6 +133,7 @@ pub fn chapter_text_rows(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String, i
     Ok(rows)
 }
 
+#[cfg(test)]
 pub fn correct_option(db: &Db, question_id: i64) -> Result<i64, AppError> {
     let id: i64 = db
         .with(|c| {
@@ -150,32 +146,6 @@ pub fn correct_option(db: &Db, question_id: i64) -> Result<i64, AppError> {
         })?
         .ok_or_else(|| AppError::NotFound(format!("correct option for question {question_id}")))?;
     Ok(id)
-}
-
-pub fn questions_for_chapter(
-    db: &Db,
-    chapter_id: i64,
-    limit: i64,
-) -> Result<Vec<Question>, AppError> {
-    let qids: Vec<i64> = db.with(|c| {
-        let mut stmt = c.prepare(
-            "SELECT q.id FROM questions q
-             JOIN concepts c ON c.id = q.concept_id
-             WHERE c.chapter_id = ?1 ORDER BY q.id",
-        )?;
-        let mapped = stmt.query_map([chapter_id], |r| r.get::<_, i64>(0))?;
-        let mut v: Vec<i64> = mapped.collect::<rusqlite::Result<Vec<_>>>()?;
-        if limit > 0 && (v.len() as i64) > limit {
-            v.truncate(limit as usize);
-        }
-        Ok(v)
-    })?;
-
-    let mut out = Vec::with_capacity(qids.len());
-    for qid in qids {
-        out.push(question_with_options(db, qid)?);
-    }
-    Ok(out)
 }
 
 fn question_with_options(db: &Db, qid: i64) -> Result<Question, AppError> {
@@ -210,8 +180,16 @@ fn question_with_options(db: &Db, qid: i64) -> Result<Question, AppError> {
     })?;
 
     // Deterministic shuffle of options by question id (never leaks is_correct).
-    let mut idx: [usize; 4] = [0, 1, 2, 3];
-    shuffle4(&mut idx, qid);
+    // Works for any number of options; guarded against schema drift where a
+    // question does not have exactly 4 options.
+    if opts.is_empty() {
+        return Ok(Question {
+            options: Vec::new(),
+            ..q
+        });
+    }
+    let mut idx: Vec<usize> = (0..opts.len()).collect();
+    shuffle_n(&mut idx, qid);
     let ordered: Vec<QuestionOption> = idx
         .iter()
         .enumerate()
@@ -228,10 +206,14 @@ fn question_with_options(db: &Db, qid: i64) -> Result<Question, AppError> {
     })
 }
 
-/// Deterministic Fisher-Yates permutation of 4 indices seeded by `seed`.
-fn shuffle4(arr: &mut [usize; 4], seed: i64) {
-    let mut s: u64 = (seed.unsigned_abs() | 1) as u64;
-    for i in (1..4).rev() {
+/// Deterministic Fisher-Yates permutation of `arr` seeded by `seed`.
+fn shuffle_n(arr: &mut [usize], seed: i64) {
+    let n = arr.len();
+    if n < 2 {
+        return;
+    }
+    let mut s: u64 = seed.unsigned_abs() | 1;
+    for i in (1..n).rev() {
         s = s
             .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
@@ -268,6 +250,37 @@ pub fn insert_quiz_answer(
         Ok(())
     })?;
     Ok(())
+}
+
+/// Whether a graded answer already exists for `(session_id, question_id)`.
+/// Used to make `submit_answer` idempotent against a fast double-click that
+/// would otherwise double-count BKT/FSRS mastery and the score.
+pub fn quiz_answer_exists(db: &Db, session_id: i64, question_id: i64) -> Result<bool, AppError> {
+    let n: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT count(*) FROM quiz_answers WHERE session_id = ?1 AND question_id = ?2",
+            (session_id, question_id),
+            |r| r.get(0),
+        )
+    })?;
+    Ok(n > 0)
+}
+
+/// The chosen option id for an already-graded answer.
+pub fn existing_answer_choice(
+    db: &Db,
+    session_id: i64,
+    question_id: i64,
+) -> Result<Option<i64>, AppError> {
+    let v: Option<i64> = db.with(|c| {
+        c.query_row(
+            "SELECT chosen_option_id FROM quiz_answers WHERE session_id = ?1 AND question_id = ?2",
+            (session_id, question_id),
+            |r| r.get(0),
+        )
+        .optional()
+    })?;
+    Ok(v)
 }
 
 pub fn concept_mastery_pknown(db: &Db, concept_id: i64) -> Result<f64, AppError> {
@@ -323,11 +336,11 @@ pub fn update_mastery(
     Ok(())
 }
 
-pub fn get_review_card(
-    db: &Db,
-    concept_id: i64,
-) -> Result<Option<(f64, f64, u32, u32, Option<i64>, Option<i64>)>, AppError> {
-    let v: Option<(f64, f64, i64, i64, Option<i64>, Option<i64>)> = db.with(|c| {
+type ReviewCardRow = (f64, f64, u32, u32, Option<i64>, Option<i64>);
+type RawReviewCard = (f64, f64, i64, i64, Option<i64>, Option<i64>);
+
+pub fn get_review_card(db: &Db, concept_id: i64) -> Result<Option<ReviewCardRow>, AppError> {
+    let v: Option<RawReviewCard> = db.with(|c| {
         c.query_row(
             "SELECT stability, difficulty, reps, lapses, last_review, due
              FROM review_cards WHERE concept_id = ?1",
@@ -348,6 +361,7 @@ pub fn get_review_card(
     Ok(v.map(|(s, d, reps, laps, lr, due)| (s, d, reps as u32, laps as u32, lr, due)))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn upsert_review_card(
     db: &Db,
     concept_id: i64,
@@ -413,6 +427,19 @@ fn build_answer_review(
 }
 
 pub fn quiz_session_summary(db: &Db, session_id: i64) -> Result<(i64, i64, f64), AppError> {
+    // The aggregate below always returns one row (even for a missing session),
+    // so guard with an explicit existence check rather than relying on
+    // `.optional()` — otherwise a typo'd session_id silently returns 0/0.
+    let exists: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT count(*) FROM quiz_sessions WHERE id = ?1",
+            [session_id],
+            |r| r.get(0),
+        )
+    })?;
+    if exists == 0 {
+        return Err(AppError::NotFound(format!("session {session_id}")));
+    }
     let (total, correct): (i64, i64) = db
         .with(|c| {
             c.query_row(
@@ -542,11 +569,7 @@ pub fn get_progress(
          ORDER BY c.id"
     };
     let rows = db.with(|c| {
-        let mut stmt = if chapter_id.is_some() {
-            c.prepare(sql)?
-        } else {
-            c.prepare(sql)?
-        };
+        let mut stmt = c.prepare(sql)?;
         let mapped = if let Some(ch) = chapter_id {
             stmt.query_map([ch], map_progress)?
         } else {
@@ -692,8 +715,7 @@ mod tests {
     #[test]
     fn settings_roundtrip() {
         let (db, p) = temp_db();
-        set_setting(&db, "language", "hi").unwrap();
-        set_setting(&db, "grade", "9").unwrap();
+        set_settings_bulk(&db, &[("language", "hi"), ("grade", "9")]).unwrap();
         assert_eq!(get_setting(&db, "language").unwrap().as_deref(), Some("hi"));
         assert_eq!(get_setting(&db, "grade").unwrap().as_deref(), Some("9"));
         assert_eq!(get_setting(&db, "missing").unwrap(), None);

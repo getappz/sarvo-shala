@@ -44,10 +44,15 @@ pub fn complete_wizard(
             "board must be 'CBSE', got {board}"
         )));
     }
-    queries::set_setting(&state, "language", &language)?;
-    queries::set_setting(&state, "grade", &grade.to_string())?;
-    queries::set_setting(&state, "board", &board)?;
-    queries::set_setting(&state, "onboarded", "true")?;
+    queries::set_settings_bulk(
+        &state,
+        &[
+            ("language", language.as_str()),
+            ("grade", &grade.to_string()),
+            ("board", board.as_str()),
+            ("onboarded", "true"),
+        ],
+    )?;
     Ok(Settings {
         language,
         grade,
