@@ -58,6 +58,7 @@ export default function App() {
           <Browse
             grade={settings.grade}
             t={t}
+            language={settings.language}
             onAskTutor={openTutor}
             onStartQuiz={openQuiz}
           />

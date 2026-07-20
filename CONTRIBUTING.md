@@ -28,9 +28,14 @@ cargo tauri dev     # full app, with the Rust backend
 npm run check              # TypeScript build check
 cd src-tauri
 cargo fmt --check
-cargo clippy --all-targets -- -D warnings
+cargo clippy --all-targets -- -D warnings  # currently advisory in CI, not yet blocking (see below)
 cargo test
 ```
+
+Clippy is not yet a hard CI gate: the codebase currently has intentional
+dead-code scaffolding (inference/retriever/speech trait seams) that
+`-D warnings` flags. Run it locally and fix what you introduce; it will
+become blocking once the scaffolding is wired up.
 
 ## Repo structure
 
