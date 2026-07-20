@@ -3,6 +3,7 @@ import { getSettings, type Settings, type Chapter } from "./lib/ipc";
 import { useT } from "./lib/i18n";
 import Wizard from "./screens/Wizard";
 import Browse from "./screens/Browse";
+import Quiz from "./screens/Quiz";
 
 type Tab = "browse" | "tutor" | "quiz" | "progress";
 
@@ -59,7 +60,14 @@ export default function App() {
             onStartQuiz={openQuiz}
           />
         )}
-        {(tab === "tutor" || tab === "quiz" || tab === "progress") && (
+        {tab === "quiz" &&
+          (selectedChapter ? (
+            <Quiz chapter={selectedChapter} t={t} />
+          ) : (
+            <p>{t("browse")}</p>
+          ))}
+
+        {(tab === "tutor" || tab === "progress") && (
           <p>
             {selectedChapter
               ? `${t(tab)} — ${selectedChapter.title} (${t("loading")})`

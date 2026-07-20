@@ -1,6 +1,6 @@
 use crate::db::Db;
 use crate::error::AppError;
-use crate::models::{Chapter, Concept, Question, QuestionOption, Subject};
+use crate::models::{AnswerReview, Chapter, Concept, Question, QuestionOption, Subject};
 use rusqlite::OptionalExtension;
 
 pub fn set_setting(db: &Db, key: &str, value: &str) -> Result<(), AppError> {
@@ -210,6 +210,272 @@ fn shuffle4(arr: &mut [usize; 4], seed: i64) {
         let j = ((s >> 33) % (i as u64 + 1)) as usize;
         arr.swap(i, j);
     }
+}
+
+// ---------- Quiz ----------
+
+pub fn insert_quiz_session(db: &Db, chapter_id: i64, started_at: i64) -> Result<i64, AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO quiz_sessions (chapter_id, started_at, finished_at, score) VALUES (?1,?2,NULL,NULL)",
+            (chapter_id, started_at),
+        )?;
+        Ok(c.last_insert_rowid())
+    })
+}
+
+pub fn insert_quiz_answer(
+    db: &Db,
+    session_id: i64,
+    question_id: i64,
+    chosen_option_id: i64,
+    correct: bool,
+    answered_at: i64,
+) -> Result<(), AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO quiz_answers (session_id, question_id, chosen_option_id, correct, answered_at) VALUES (?1,?2,?3,?4,?5)",
+            (session_id, question_id, chosen_option_id, if correct { 1 } else { 0 }, answered_at),
+        )?;
+        Ok(())
+    })?;
+    Ok(())
+}
+
+pub fn concept_mastery_pknown(db: &Db, concept_id: i64) -> Result<f64, AppError> {
+    let v: Option<f64> = db.with(|c| {
+        c.query_row(
+            "SELECT p_known FROM concept_mastery WHERE concept_id = ?1",
+            [concept_id],
+            |r| r.get(0),
+        )
+        .optional()
+    })?;
+    Ok(v.unwrap_or(0.2))
+}
+
+/// Returns the question id for a concept at the given difficulty layer (1..3), if any.
+pub fn question_for_concept_layer(
+    db: &Db,
+    concept_id: i64,
+    layer: i64,
+) -> Result<Option<i64>, AppError> {
+    let v: Option<i64> = db.with(|c| {
+        c.query_row(
+            "SELECT id FROM questions WHERE concept_id = ?1 AND difficulty_layer = ?2",
+            (concept_id, layer),
+            |r| r.get(0),
+        )
+        .optional()
+    })?;
+    Ok(v)
+}
+
+pub fn update_mastery(
+    db: &Db,
+    concept_id: i64,
+    p_known: f64,
+    attempts: i64,
+    correct: i64,
+    updated_at: i64,
+) -> Result<(), AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO concept_mastery (concept_id, p_known, attempts, correct, updated_at)
+             VALUES (?1,?2,?3,?4,?5)
+             ON CONFLICT(concept_id) DO UPDATE SET
+               p_known = excluded.p_known,
+               attempts = excluded.attempts,
+               correct = excluded.correct,
+               updated_at = excluded.updated_at",
+            (concept_id, p_known, attempts, correct, updated_at),
+        )?;
+        Ok(())
+    })?;
+    Ok(())
+}
+
+pub fn get_review_card(
+    db: &Db,
+    concept_id: i64,
+) -> Result<
+    Option<(f64, f64, u32, u32, Option<i64>, Option<i64>)>,
+    AppError,
+> {
+    let v: Option<(f64, f64, i64, i64, Option<i64>, Option<i64>)> = db.with(|c| {
+        c.query_row(
+            "SELECT stability, difficulty, reps, lapses, last_review, due
+             FROM review_cards WHERE concept_id = ?1",
+            [concept_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
+        )
+        .optional()
+    })?;
+    Ok(v.map(|(s, d, reps, laps, lr, due)| (s, d, reps as u32, laps as u32, lr, due)))
+}
+
+pub fn upsert_review_card(
+    db: &Db,
+    concept_id: i64,
+    stability: f64,
+    difficulty: f64,
+    reps: u32,
+    lapses: u32,
+    last_review: Option<i64>,
+    due: Option<i64>,
+) -> Result<(), AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO review_cards (concept_id, stability, difficulty, reps, lapses, last_review, due)
+             VALUES (?1,?2,?3,?4,?5,?6,?7)
+             ON CONFLICT(concept_id) DO UPDATE SET
+               stability = excluded.stability,
+               difficulty = excluded.difficulty,
+               reps = excluded.reps,
+               lapses = excluded.lapses,
+               last_review = excluded.last_review,
+               due = excluded.due",
+            (concept_id, stability, difficulty, reps, lapses, last_review, due),
+        )?;
+        Ok(())
+    })?;
+    Ok(())
+}
+
+pub fn upsert_study_day(db: &Db, day: &str) -> Result<(), AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT OR IGNORE INTO study_days (day) VALUES (?1)",
+            (day,),
+        )?;
+        Ok(())
+    })?;
+    Ok(())
+}
+
+fn build_answer_review(
+    db: &Db,
+    question_id: i64,
+    chosen_option_id: i64,
+) -> Result<AnswerReview, AppError> {
+    let (correct_option_id, explanation, trap): (i64, String, String) = db.with(|c| {
+        c.query_row(
+            "SELECT qo.id, q.explanation, q.trap
+             FROM questions q
+             JOIN question_options qo ON qo.question_id = q.id AND qo.is_correct = 1
+             WHERE q.id = ?1",
+            [question_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()
+    })?
+    .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
+    let correct = chosen_option_id == correct_option_id;
+    Ok(AnswerReview {
+        question_id,
+        correct,
+        correct_option_id,
+        explanation,
+        trap,
+    })
+}
+
+pub fn quiz_session_summary(
+    db: &Db,
+    session_id: i64,
+) -> Result<(i64, i64, f64), AppError> {
+    let (total, correct): (i64, i64) = db.with(|c| {
+        c.query_row(
+            "SELECT count(*), sum(correct) FROM quiz_answers WHERE session_id = ?1",
+            [session_id],
+            |r| Ok((r.get(0)?, r.get::<_, i64>(1).unwrap_or(0))),
+        )
+        .optional()
+    })?
+    .ok_or_else(|| AppError::NotFound(format!("session {session_id}")))?;
+    let score = if total > 0 {
+        (correct as f64) / (total as f64) * 100.0
+    } else {
+        0.0
+    };
+    Ok((total, correct, score))
+}
+
+pub fn quiz_session_reviews(db: &Db, session_id: i64) -> Result<Vec<AnswerReview>, AppError> {
+    let qids: Vec<(i64, i64)> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT question_id, chosen_option_id FROM quiz_answers WHERE session_id = ?1")?;
+        let mapped = stmt.query_map([session_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)))?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    let mut out = Vec::with_capacity(qids.len());
+    for (qid, chosen) in qids {
+        out.push(build_answer_review(db, qid, chosen)?);
+    }
+    Ok(out)
+}
+
+pub fn concept_ids_for_chapter(db: &Db, chapter_id: i64) -> Result<Vec<i64>, AppError> {
+    let v: Vec<i64> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT id FROM concepts WHERE chapter_id = ?1 ORDER BY ord")?;
+        let mapped = stmt.query_map([chapter_id], |r| r.get::<_, i64>(0))?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    Ok(v)
+}
+
+pub fn question_by_id(db: &Db, qid: i64) -> Result<Question, AppError> {
+    question_with_options(db, qid)
+}
+
+pub fn question_concept_layer(
+    db: &Db,
+    question_id: i64,
+) -> Result<(i64, i64), AppError> {
+    let v: (i64, i64) = db.with(|c| {
+        c.query_row(
+            "SELECT concept_id, difficulty_layer FROM questions WHERE id = ?1",
+            [question_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()
+    })?
+    .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
+    Ok(v)
+}
+
+pub fn finish_session(db: &Db, session_id: i64, score: f64) -> Result<(), AppError> {
+    db.with(|c| {
+        c.execute(
+            "UPDATE quiz_sessions SET finished_at = strftime('%s','now'), score = ?1 WHERE id = ?2",
+            (score, session_id),
+        )?;
+        Ok(())
+    })?;
+    Ok(())
+}
+
+pub fn grade_answer(
+    db: &Db,
+    question_id: i64,
+    chosen_option_id: i64,
+) -> Result<AnswerReview, AppError> {
+    build_answer_review(db, question_id, chosen_option_id)
+}
+
+pub fn get_mastery(
+    db: &Db,
+    concept_id: i64,
+) -> Result<(f64, i64, i64), AppError> {
+    let v: (f64, i64, i64) = db.with(|c| {
+        c.query_row(
+            "SELECT p_known, attempts, correct FROM concept_mastery WHERE concept_id = ?1",
+            [concept_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()
+    })?
+    .ok_or_else(|| AppError::NotFound(format!("mastery for concept {concept_id}")))?;
+    Ok(v)
 }
 
 #[cfg(test)]

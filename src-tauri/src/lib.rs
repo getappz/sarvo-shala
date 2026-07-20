@@ -30,7 +30,10 @@ pub fn run() {
       commands::settings::complete_wizard,
       commands::curriculum::list_subjects,
       commands::curriculum::list_chapters,
-      commands::curriculum::list_concepts
+      commands::curriculum::list_concepts,
+      commands::quiz::start_quiz,
+      commands::quiz::submit_answer,
+      commands::quiz::finish_quiz
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
