@@ -5,7 +5,7 @@
 
 ## Method
 
-22 candidates over 2 waves, each verified across 4 lanes:
+30 candidates over 3 waves, each verified across 4 lanes:
 1. **Domains** — RDAP registration check (.com / .app / .in)
 2. **Web / edtech / app stores** — existing apps, edtech products, brand & media collisions
 3. **GitHub / OSS** — repos, orgs, npm, crates, username availability
@@ -49,6 +49,39 @@ Distant 4th/5th: **Vichar** (no decisive collision but generic; tiny quote apps 
 | Sawaal | Sawal AI education-assessment app + KBC/Bollywood swamping |
 | Jaano | "Jaano" civic-participation app live on all three Indian app stores (borderline, treated as kill) |
 | Anvay | Anvay Maritime Institute app + ANVAY agentic-AI CRM + negative news association |
+
+## Wave 3 — owner-directed: Ekalavya theme + wordplay short forms
+
+Owner suggested Ekalavya (self-taught archer = the app's user), Acharya, and "play with words / short forms that keep the meaning." Verified results:
+
+| Name | Verdict | Why |
+|---|---|---|
+| Eklav | kill (downgraded) | Owner caught what the scan missed: **eklav.in is a live "Eklav — Learning & Career Platform"** — exact name, same category (definitive). The Eklavya ROOT is also crowded with AI-education platforms: eklavyaai.com ("Eklavya Education Platform", archer pitch), ekalavya.ai ("Ekalavya AI"), eklavya.io (JEE/NEET/CBSE smart learning — same audience), ekalavya.io, eklavya.me (kids' learning games), ekluvya.guru (edu OTT). "Eklav" is deceptively similar to all of these in the same category — no discoverability, real class 41/42 similarity exposure. Plus the earlier residual risks (EMRS expansion, mythological figure, caste-sensitive story). |
+| Ekalavya / Eklavya | kill | Eklavya Model Residential Schools — flagship Ministry of Tribal Affairs programme, multiple live govt portals (nests.tribal.gov.in, eklavya.cg.nic.in, eklavya-education.gujarat.gov.in) + Eklavya Foundation NGO + 2007 film. Swayam-class collision. |
+| Acharya | kill | Play Store name-space owned by astrology apps (Acharya Astrology, Acharya Astro, The Acharya Mukti…); 2022 Chiranjeevi film; spiritual title in the excluded "Guru" slot; huge surname. Reads *astrologer*, not tutor. |
+| PadhAI | kill | Three active same-name products: "PadhAI – Smart Study with AI" Play app (identical concept), One Fourth Labs' PadhAI courses (still enrolling), padhai.ai UPSC app. |
+| Ojas | kill | ojas.gujarat.gov.in — live Gujarat govt job portal, integrated into GoI's UMANG app; plus dense Ayurveda-brand crowding. |
+| SahAI | caution | No product kill, but Wadhwani AI runs the "SahAI for Shiksha" AI-education hackathon (identical pun, identical domain); heavy surname + Groth-Sahai cryptography noise. |
+| Kutu | caution | kutu.ai (B2B AI product) + live Kutu iOS app; Bengali hears "tickle" (katu-kutu), Indonesian/Malay hears "lice". |
+| Kushagra | caution | No product owns it, but common first name (incl. WsCube Tech's founder) — un-searchable, like Chintan. |
+
+Side-finds: `swadhyay.app/.in` and `abhyasu.app/.in` unregistered, but Swadhyay = religious movement (Swadhyay Parivar) + "swa" root; Abhyas proper is NTA's govt "National Test Abhyas" app.
+
+## Final ranking (all waves)
+
+1. **Ojasvi** — zero conflicts anywhere; safest.
+2. **Sopan** — clean, gentle metaphor, minor name noise.
+3. Ekagra — thematically Ekalavya's trait (single-pointed focus), but ekagraapp.com exists.
+
+(Eklav was briefly finalist #2 until the owner found eklav.in — a live exact-name learning platform. Killed.)
+
+## Direction chosen (2026-07-20): Sarvo house brand + descriptor
+
+Owner decision: use **Sarvo** (their platform, sarvo.ai) as the master brand with an education sub-brand, Zoho-Books-style. This sidesteps the standalone-name deadlock: the distinctive/protectable element is "Sarvo"; the sub-name is a descriptor.
+
+Descriptor options (ranked): **Sarvo Learn** (safest, pan-India, `learn.sarvo.ai`, Tauri `ai.sarvo.learn`) · **Sarvo Shala** (warm, pan-Indic "school") · **Sarvo Tutor** (literal). Avoid: Sarvo Padhai (echoes killed PadhAI products), Sarvo Vidya (excluded root). The in-app tutor persona can still be named (mascot needs no brand clearance) — **Ojasvi** is verified conflict-free and is the natural pick.
+
+Caveats verified: existing third-party "SARVO" TM filings in India incl. a **class 9 "SARVO (DEVICE)" mark** and a class 11 mark — device marks are narrower than word marks, but the formal IP India search is now genuinely important; file "Sarvo" word mark in classes 41/42 for the education expansion. Brand-fit note: Sarvo is positioned B2B automation; a kids' tutor under it is a deliberate stretch (Zoho-style generality).
 
 ## Next steps
 

@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 pub mod queries;
+pub mod seed;
 
 pub struct Db {
     inner: Arc<Mutex<rusqlite::Connection>>,
