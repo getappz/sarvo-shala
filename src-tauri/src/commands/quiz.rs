@@ -12,30 +12,6 @@ fn now_secs() -> i64 {
         .unwrap_or(0)
 }
 
-/// Format a unix timestamp (seconds) as a UTC `YYYY-MM-DD` day string.
-fn day_string(now: i64) -> String {
-    let days = now.div_euclid(86400) + 719_163; // Unix epoch -> days since 0000-03-01
-    let mut y = 0i64;
-    let mut m = 0i64;
-    let mut d = 0i64;
-    civil_from_days(days, &mut y, &mut m, &mut d);
-    format!("{y:04}-{m:02}-{d:02}")
-}
-
-/// Reversed algorithm: days since 0000-03-01 -> civil (y, m, d).
-fn civil_from_days(z: i64, y: &mut i64, m: &mut i64, d: &mut i64) {
-    let zz = z + 306;
-    let era = if zz >= 0 { zz } else { zz - 146096 } / 146097;
-    let doe = zz - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y_ = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    *m = if mp < 10 { mp + 3 } else { mp - 9 };
-    *y = if *m <= 2 { y_ + 1 } else { y_ };
-    *d = doy - (153 * mp + 2) / 5 + 1;
-}
-
 fn layer_for(p_known: f64) -> i64 {
     if p_known < 0.4 {
         1
@@ -48,6 +24,8 @@ fn layer_for(p_known: f64) -> i64 {
 
 #[tauri::command]
 pub fn start_quiz(state: State<Db>, chapter_id: i64) -> Result<(i64, Vec<Question>), AppError> {
+    // Reject a bogus chapter id instead of silently returning an empty quiz.
+    queries::get_chapter(&state, chapter_id)?;
     let now = now_secs();
     let session_id = queries::insert_quiz_session(&state, chapter_id, now)?;
     let concepts = queries::concept_ids_for_chapter(&state, chapter_id)?;
@@ -73,26 +51,51 @@ pub fn submit_answer(
     session_id: i64,
     question_id: i64,
     chosen_option_id: i64,
+    day: String,
+) -> Result<AnswerReview, AppError> {
+    submit_answer_impl(&state, session_id, question_id, chosen_option_id, &day)
+}
+
+/// Core grading pipeline, split out from the `#[tauri::command]` wrapper so
+/// it can be exercised directly -- including concurrently -- in tests.
+pub(crate) fn submit_answer_impl(
+    db: &Db,
+    session_id: i64,
+    question_id: i64,
+    chosen_option_id: i64,
+    day: &str,
 ) -> Result<AnswerReview, AppError> {
     let now = now_secs();
-    let review = queries::grade_answer(&state, question_id, chosen_option_id)?;
-    queries::insert_quiz_answer(
-        &state,
+    let review = queries::grade_answer(db, question_id, chosen_option_id)?;
+
+    // Idempotent: a fast double-click (or a genuinely concurrent duplicate
+    // call) fires this twice for the same question. `insert_quiz_answer_if_absent`
+    // is a single atomic `INSERT OR IGNORE`, so only the caller that actually
+    // wins the race gets `true` back and runs the BKT/FSRS/score updates
+    // below; everyone else returns the already-graded result for the
+    // *originally stored* choice instead of re-running (and double-counting)
+    // mastery.
+    if !queries::insert_quiz_answer_if_absent(
+        db,
         session_id,
         question_id,
         chosen_option_id,
         review.correct,
         now,
-    )?;
+    )? {
+        let chosen = queries::existing_answer_choice(db, session_id, question_id)?
+            .ok_or_else(|| AppError::NotFound(format!("answer for {question_id}")))?;
+        return queries::grade_answer(db, question_id, chosen);
+    }
 
-    let (concept_id, layer) = queries::question_concept_layer(&state, question_id)?;
+    let (concept_id, layer) = queries::question_concept_layer(db, question_id)?;
 
     // BKT mastery update.
-    let p_known = queries::concept_mastery_pknown(&state, concept_id)?;
+    let p_known = queries::concept_mastery_pknown(db, concept_id)?;
     let new_p = bkt::update(p_known, review.correct, &bkt::Params::default());
-    let (_, attempts, correct_count) = queries::get_mastery(&state, concept_id)?;
+    let (_, attempts, correct_count) = queries::get_mastery(db, concept_id)?;
     queries::update_mastery(
-        &state,
+        db,
         concept_id,
         new_p,
         attempts + 1,
@@ -101,7 +104,7 @@ pub fn submit_answer(
     )?;
 
     // FSRS review-card update.
-    let card_row = queries::get_review_card(&state, concept_id)?;
+    let card_row = queries::get_review_card(db, concept_id)?;
     let card = match card_row {
         Some((s, d, reps, laps, lr, due)) => fsrs::Card {
             stability: s,
@@ -131,7 +134,7 @@ pub fn submit_answer(
     };
     let updated = fsrs::review(&card, rating, now);
     queries::upsert_review_card(
-        &state,
+        db,
         concept_id,
         updated.stability,
         updated.difficulty,
@@ -141,7 +144,10 @@ pub fn submit_answer(
         updated.due,
     )?;
 
-    queries::upsert_study_day(&state, &day_string(now))?;
+    // `day` is the local calendar day supplied by the frontend, so study-day
+    // streaks agree with the student's local timezone (target audience is in
+    // IST, where a UTC day string would mis-attribute pre-dawn study).
+    queries::upsert_study_day(db, day)?;
 
     Ok(review)
 }
@@ -168,12 +174,11 @@ mod tests {
     use crate::pedagogy::bkt;
 
     fn seeded() -> (Db, std::path::PathBuf) {
-        let n = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let mut p = std::env::temp_dir();
-        p.push(format!("swayam_quiz_{}.db", n));
+        p.push(format!("swayam_quiz_{}_{}.db", std::process::id(), n));
         let _ = std::fs::remove_file(&p);
         let db = Db::open_or_init(&p).unwrap();
         seed::seed_if_empty(&db).unwrap();
@@ -253,12 +258,58 @@ mod tests {
         let session = queries::insert_quiz_session(&db, 1, 1_000_000).unwrap();
         let c1 = queries::correct_option(&db, 1).unwrap();
         let c2 = queries::correct_option(&db, 2).unwrap();
-        queries::insert_quiz_answer(&db, session, 1, c1, true, 1_000_001).unwrap();
-        queries::insert_quiz_answer(&db, session, 2, c2, true, 1_000_002).unwrap();
+        queries::insert_quiz_answer_if_absent(&db, session, 1, c1, true, 1_000_001).unwrap();
+        queries::insert_quiz_answer_if_absent(&db, session, 2, c2, true, 1_000_002).unwrap();
         let (total, correct, score) = queries::quiz_session_summary(&db, session).unwrap();
         assert_eq!(total, 2);
         assert_eq!(correct, 2);
         assert_eq!(score, 100.0);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn concurrent_submit_answer_only_counts_once() {
+        let (db, p) = seeded();
+        let session = queries::insert_quiz_session(&db, 1, 1_000_000).unwrap();
+        let correct_id = queries::correct_option(&db, 1).unwrap();
+
+        // Fire two genuinely concurrent submissions for the same
+        // (session, question) -- the scenario a fast double-click or two
+        // in-flight IPC calls can produce. Only one may run the BKT/FSRS
+        // mastery update; the other must gracefully return the same graded
+        // review instead of erroring out.
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let handles: Vec<_> = (0..2)
+            .map(|_| {
+                let db = db.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    super::submit_answer_impl(&db, session, 1, correct_id, "2026-07-20")
+                })
+            })
+            .collect();
+        let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+
+        for r in &results {
+            let review = r.as_ref().expect("submit_answer_impl must not error");
+            assert!(review.correct);
+        }
+
+        let answer_count: i64 = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT count(*) FROM quiz_answers WHERE session_id = ?1 AND question_id = ?2",
+                    (session, 1),
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+        assert_eq!(answer_count, 1, "only one answer row despite two submits");
+
+        let (_, attempts, _) = queries::get_mastery(&db, 1).unwrap();
+        assert_eq!(attempts, 1, "mastery must only be updated by the winner");
+
         let _ = std::fs::remove_file(&p);
     }
 }

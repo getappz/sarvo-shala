@@ -1,13 +1,14 @@
 use crate::ai::classify::{Classifier, HeuristicClassifier};
 use crate::ai::mock::MockBackend;
 use crate::ai::retriever::KeywordRetriever;
-use crate::ai::socratic::{SocState, SocraticEngine};
-use crate::ai::{GenRequest, InferenceBackend, Retriever, Snippet};
+use crate::ai::socratic::{encode_fsm, parse_fsm, SocraticEngine};
+use crate::ai::{safe_user_prompt, GenRequest, InferenceBackend, Retriever, Snippet};
 use crate::db::queries;
 use crate::db::Db;
 use crate::error::AppError;
 use crate::models::{ChatMessage, StreamEvent, TutorTurnResult};
-use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
 
 fn now_secs() -> i64 {
@@ -15,17 +16,6 @@ fn now_secs() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
-}
-
-fn parse_state(s: &str) -> SocState {
-    match s {
-        "Probe" => SocState::Probe,
-        "Clarify" => SocState::Clarify,
-        "Confront" => SocState::Confront,
-        "Scaffold" => SocState::Scaffold,
-        "Confirm" => SocState::Confirm,
-        _ => SocState::Probe,
-    }
 }
 
 /// Derive expected keywords from the top retrieved snippet (lowercased words
@@ -54,11 +44,15 @@ pub async fn tutor_turn(
     fsm_state: String,
 ) -> Result<TutorTurnResult, AppError> {
     let db = (*state).clone();
+    // Cancellation seam: a future real backend can be aborted when the user
+    // navigates away. For MVP-0 the flag is never set within a turn.
+    let cancel = Arc::new(AtomicBool::new(false));
     run_turn(
         &db,
         chapter_id,
         &student_msg,
         &fsm_state,
+        &cancel,
         &|e: StreamEvent| {
             let _ = app.emit("tutor-stream", e);
         },
@@ -74,6 +68,7 @@ pub(crate) async fn run_turn(
     chapter_id: i64,
     student_msg: &str,
     fsm_state: &str,
+    cancel: &Arc<AtomicBool>,
     emit: &(dyn Fn(StreamEvent) + Send + Sync),
 ) -> Result<TutorTurnResult, AppError> {
     let retriever = KeywordRetriever::new(db.clone());
@@ -106,10 +101,13 @@ pub(crate) async fn run_turn(
     };
     let snippets = retriever.retrieve(&query, chapter_id, 3)?;
 
-    // Advance the Socratic FSM from the supplied state.
+    // Advance the Socratic FSM from the supplied state. The persisted
+    // scaffold-turn counter comes from the encoded FSM string so the escape
+    // hatch is reachable across separate IPC calls (see `encode_fsm`).
+    let (base_state, scaffold_turns) = parse_fsm(fsm_state);
     let mut engine = SocraticEngine {
-        state: parse_state(fsm_state),
-        scaffold_turns: 0,
+        state: base_state,
+        scaffold_turns,
     };
     if !is_empty {
         let q = classifier.classify(student_msg, &keywords_from(&snippets));
@@ -118,7 +116,7 @@ pub(crate) async fn run_turn(
 
     let req = GenRequest {
         system: engine.directive().to_string(),
-        user: student_msg.to_string(),
+        user: safe_user_prompt(student_msg),
         state: engine.state.to_string(),
         context: snippets.iter().map(|s| s.body.clone()).collect(),
     };
@@ -126,31 +124,30 @@ pub(crate) async fn run_turn(
     // Stream tokens to the UI while assembling the full reply.
     let full = Mutex::new(String::new());
     backend
-        .generate(req, &|tok: String| {
-            emit(StreamEvent::Token { text: tok.clone() });
+        .generate(req, cancel, &|tok: String| {
+            emit(StreamEvent::Token {
+                chapter_id,
+                text: tok.clone(),
+            });
             full.lock().unwrap().push_str(&tok);
         })
         .await?;
     let full = full.into_inner().unwrap();
 
     // Persist the tutor reply.
-    let tutor_msg_id = queries::insert_chat_message(
-        db,
-        chapter_id,
-        "tutor",
-        &full,
-        &engine.state.to_string(),
-        now_secs(),
-    )?;
+    let encoded = encode_fsm(engine.state, engine.scaffold_turns);
+    let tutor_msg_id =
+        queries::insert_chat_message(db, chapter_id, "tutor", &full, &encoded, now_secs())?;
 
     // Let the UI sync its local FSM state.
     emit(StreamEvent::StateChange {
-        state: engine.state.to_string(),
+        chapter_id,
+        state: encoded.clone(),
     });
 
     Ok(TutorTurnResult {
         reply: full,
-        fsm_state: engine.state.to_string(),
+        fsm_state: encoded,
         student_msg_id,
         tutor_msg_id,
     })
@@ -171,12 +168,11 @@ mod tests {
     use crate::models::StreamEvent;
 
     fn seeded() -> (Db, std::path::PathBuf) {
-        let n = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let mut p = std::env::temp_dir();
-        p.push(format!("shala_tutor_{}.db", n));
+        p.push(format!("shala_tutor_{}_{}.db", std::process::id(), n));
         let _ = std::fs::remove_file(&p);
         let db = Db::open_or_init(&p).unwrap();
         seed::seed_if_empty(&db).unwrap();
@@ -189,7 +185,14 @@ mod tests {
         let noop = |_: StreamEvent| {};
         let res = tokio::runtime::Runtime::new()
             .unwrap()
-            .block_on(super::run_turn(&db, 1, "", "Probe", &noop))
+            .block_on(super::run_turn(
+                &db,
+                1,
+                "",
+                "Probe",
+                &std::sync::Arc::new(AtomicBool::new(false)),
+                &noop,
+            ))
             .unwrap();
         assert_eq!(res.fsm_state, "Probe");
         assert!(!res.reply.is_empty());
@@ -207,7 +210,14 @@ mod tests {
         let noop = |_: StreamEvent| {};
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _ = rt
-            .block_on(super::run_turn(&db, 1, "", "Probe", &noop))
+            .block_on(super::run_turn(
+                &db,
+                1,
+                "",
+                "Probe",
+                &std::sync::Arc::new(AtomicBool::new(false)),
+                &noop,
+            ))
             .unwrap();
         // Student reply with keywords from the seeded pressure snippet.
         let res = rt
@@ -216,6 +226,7 @@ mod tests {
                 1,
                 "pressure depends on force and area", // contains snippet keywords
                 "Probe",
+                &std::sync::Arc::new(AtomicBool::new(false)),
                 &noop,
             ))
             .unwrap();

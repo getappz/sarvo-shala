@@ -6,16 +6,31 @@ use tauri::State;
 
 #[tauri::command]
 pub fn list_subjects(state: State<Db>, grade: i64) -> Result<Vec<Subject>, AppError> {
+    if !(1..=12).contains(&grade) {
+        return Err(AppError::BadInput(format!(
+            "grade must be between 1 and 12, got {grade}"
+        )));
+    }
     queries::list_subjects(&state, grade)
 }
 
 #[tauri::command]
 pub fn list_chapters(state: State<Db>, subject_id: i64) -> Result<Vec<Chapter>, AppError> {
+    if subject_id <= 0 {
+        return Err(AppError::BadInput(format!(
+            "subject_id must be positive, got {subject_id}"
+        )));
+    }
     queries::list_chapters(&state, subject_id)
 }
 
 #[tauri::command]
 pub fn list_concepts(state: State<Db>, chapter_id: i64) -> Result<Vec<Concept>, AppError> {
+    if chapter_id <= 0 {
+        return Err(AppError::BadInput(format!(
+            "chapter_id must be positive, got {chapter_id}"
+        )));
+    }
     queries::list_concepts(&state, chapter_id)
 }
 

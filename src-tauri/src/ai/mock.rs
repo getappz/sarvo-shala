@@ -1,6 +1,8 @@
 use crate::ai::{GenRequest, InferenceBackend};
 use crate::error::AppError;
 use async_trait::async_trait;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Build a deterministic, Socratic-state-aware reply from the top retrieved
@@ -57,8 +59,14 @@ impl InferenceBackend for MockBackend {
     async fn generate(
         &self,
         req: GenRequest,
+        cancel: &Arc<AtomicBool>,
         on_token: &(dyn Fn(String) + Send + Sync),
     ) -> Result<String, AppError> {
+        // Seam for slow real backends: abort early if cancelled. The mock is
+        // fast enough that this never trips in practice.
+        if cancel.load(Ordering::Relaxed) {
+            return Err(AppError::Engine("generation cancelled".to_string()));
+        }
         let first_snippet = req.context.first().cloned().unwrap_or_default();
         let first_sentence = first_snippet
             .split('.')
@@ -105,17 +113,25 @@ mod tests {
         let c1 = AtomicUsize::new(0);
         let c1ref = &c1;
         let t1 = MockBackend
-            .generate(req.clone(), &|_| {
-                c1ref.fetch_add(1, Ordering::SeqCst);
-            })
+            .generate(
+                req.clone(),
+                &std::sync::Arc::new(AtomicBool::new(false)),
+                &|_| {
+                    c1ref.fetch_add(1, Ordering::SeqCst);
+                },
+            )
             .await
             .unwrap();
         let c2 = AtomicUsize::new(0);
         let c2ref = &c2;
         let t2 = MockBackend
-            .generate(req.clone(), &|_| {
-                c2ref.fetch_add(1, Ordering::SeqCst);
-            })
+            .generate(
+                req.clone(),
+                &std::sync::Arc::new(AtomicBool::new(false)),
+                &|_| {
+                    c2ref.fetch_add(1, Ordering::SeqCst);
+                },
+            )
             .await
             .unwrap();
         assert_eq!(t1, t2);

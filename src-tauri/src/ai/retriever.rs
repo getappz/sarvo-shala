@@ -48,7 +48,7 @@ impl Retriever for KeywordRetriever {
             });
         } else {
             // No keyword hits: fall back to natural order.
-            scored.sort_by(|a, b| a.2.cmp(&b.2));
+            scored.sort_by_key(|s| s.2);
         }
 
         Ok(scored
