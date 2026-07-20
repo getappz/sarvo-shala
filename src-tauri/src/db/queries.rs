@@ -211,3 +211,32 @@ fn shuffle4(arr: &mut [usize; 4], seed: i64) {
         arr.swap(i, j);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_db() -> (Db, std::path::PathBuf) {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let mut p = std::env::temp_dir();
+        p.push(format!("swayam_q_{}.db", n));
+        let _ = std::fs::remove_file(&p);
+        let db = Db::open_or_init(&p).unwrap();
+        (db, p)
+    }
+
+    #[test]
+    fn settings_roundtrip() {
+        let (db, p) = temp_db();
+        set_setting(&db, "language", "hi").unwrap();
+        set_setting(&db, "grade", "9").unwrap();
+        assert_eq!(get_setting(&db, "language").unwrap().as_deref(), Some("hi"));
+        assert_eq!(get_setting(&db, "grade").unwrap().as_deref(), Some("9"));
+        assert_eq!(get_setting(&db, "missing").unwrap(), None);
+        let _ = std::fs::remove_file(&p);
+    }
+}
+

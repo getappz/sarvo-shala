@@ -1,3 +1,4 @@
+mod commands;
 mod db;
 mod error;
 mod models;
@@ -23,6 +24,10 @@ pub fn run() {
       app.manage(db);
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![
+      commands::settings::get_settings,
+      commands::settings::complete_wizard
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

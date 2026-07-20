@@ -13,3 +13,82 @@ body,
   height: 100%;
   font-family: system-ui, sans-serif;
 }
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  border-radius: 6px;
+}
+
+.tab.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.wizard {
+  max-width: 480px;
+  margin: 8vh auto;
+  padding: 24px;
+}
+
+.wizard fieldset {
+  margin: 16px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.wizard label {
+  margin-right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.error {
+  color: #dc2626;
+}
+
+button {
+  font-family: inherit;
+}
+
