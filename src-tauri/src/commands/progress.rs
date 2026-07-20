@@ -9,6 +9,13 @@ pub fn get_progress(
     state: State<Db>,
     chapter_id: Option<i64>,
 ) -> Result<Vec<ConceptProgress>, AppError> {
+    if let Some(id) = chapter_id {
+        if id <= 0 {
+            return Err(AppError::BadInput(format!(
+                "chapter_id must be positive, got {id}"
+            )));
+        }
+    }
     queries::get_progress(&state, chapter_id)
 }
 
