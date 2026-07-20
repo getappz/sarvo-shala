@@ -110,3 +110,23 @@ export function submitAnswer(
 export function finishQuiz(sessionId: number): Promise<QuizResult> {
   return invoke<QuizResult>("finish_quiz", { sessionId });
 }
+
+export interface ConceptProgress {
+  conceptId: number;
+  name: string;
+  pKnown: number;
+  due: number | null;
+  attempts: number;
+}
+
+export function getProgress(chapterId: number | null): Promise<ConceptProgress[]> {
+  return invoke<ConceptProgress[]>("get_progress", { chapterId });
+}
+
+export function getDue(now: number): Promise<ConceptProgress[]> {
+  return invoke<ConceptProgress[]>("get_due", { now });
+}
+
+export function getStreak(today: string): Promise<number> {
+  return invoke<number>("get_streak", { today });
+}

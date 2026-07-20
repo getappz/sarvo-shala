@@ -4,6 +4,7 @@ import { useT } from "./lib/i18n";
 import Wizard from "./screens/Wizard";
 import Browse from "./screens/Browse";
 import Quiz from "./screens/Quiz";
+import Progress from "./screens/Progress";
 
 type Tab = "browse" | "tutor" | "quiz" | "progress";
 
@@ -67,7 +68,9 @@ export default function App() {
             <p>{t("browse")}</p>
           ))}
 
-        {(tab === "tutor" || tab === "progress") && (
+        {tab === "progress" && <Progress chapter={selectedChapter} t={t} />}
+
+        {tab === "tutor" && (
           <p>
             {selectedChapter
               ? `${t(tab)} — ${selectedChapter.title} (${t("loading")})`

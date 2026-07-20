@@ -33,7 +33,10 @@ pub fn run() {
       commands::curriculum::list_concepts,
       commands::quiz::start_quiz,
       commands::quiz::submit_answer,
-      commands::quiz::finish_quiz
+      commands::quiz::finish_quiz,
+      commands::progress::get_progress,
+      commands::progress::get_due,
+      commands::progress::get_streak
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

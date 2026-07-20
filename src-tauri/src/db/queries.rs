@@ -462,6 +462,139 @@ pub fn grade_answer(
     build_answer_review(db, question_id, chosen_option_id)
 }
 
+// ---------- Progress ----------
+
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let mp = if m > 2 { m - 3 } else { m + 9 };
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+/// Parse a `YYYY-MM-DD` string into the same day-number epoch used by the
+/// quiz `day_string` helper (days since 0000-03-01).
+fn parse_day(s: &str) -> Option<i64> {
+    let parts: Vec<&str> = s.split('-').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let y: i64 = parts[0].parse().ok()?;
+    let m: i64 = parts[1].parse().ok()?;
+    let d: i64 = parts[2].parse().ok()?;
+    Some(days_from_civil(y, m, d) + 719_163)
+}
+
+fn map_progress(
+    r: &rusqlite::Row,
+) -> rusqlite::Result<(i64, String, f64, Option<i64>, i64)> {
+    Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
+}
+
+pub fn get_progress(
+    db: &Db,
+    chapter_id: Option<i64>,
+) -> Result<Vec<crate::models::ConceptProgress>, AppError> {
+    let sql = if chapter_id.is_some() {
+        "SELECT c.id, c.name, COALESCE(m.p_known,0.2), rc.due, COALESCE(m.attempts,0)
+         FROM concepts c
+         LEFT JOIN concept_mastery m ON m.concept_id = c.id
+         LEFT JOIN review_cards rc ON rc.concept_id = c.id
+         WHERE c.chapter_id = ?1
+         ORDER BY c.id"
+    } else {
+        "SELECT c.id, c.name, COALESCE(m.p_known,0.2), rc.due, COALESCE(m.attempts,0)
+         FROM concepts c
+         LEFT JOIN concept_mastery m ON m.concept_id = c.id
+         LEFT JOIN review_cards rc ON rc.concept_id = c.id
+         ORDER BY c.id"
+    };
+    let rows = db.with(|c| {
+        let mut stmt = if chapter_id.is_some() {
+            c.prepare(sql)?
+        } else {
+            c.prepare(sql)?
+        };
+        let mapped = if let Some(ch) = chapter_id {
+            stmt.query_map([ch], map_progress)?
+        } else {
+            stmt.query_map([], map_progress)?
+        };
+        let mut out = Vec::new();
+        for row in mapped {
+            let (id, name, pk, due, att) = row?;
+            out.push(crate::models::ConceptProgress {
+                concept_id: id,
+                name,
+                p_known: pk,
+                due,
+                attempts: att,
+            });
+        }
+        Ok(out)
+    })?;
+    Ok(rows)
+}
+
+pub fn get_due(
+    db: &Db,
+    now: i64,
+) -> Result<Vec<crate::models::ConceptProgress>, AppError> {
+    let rows = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT c.id, c.name, COALESCE(m.p_known,0.2), rc.due, COALESCE(m.attempts,0)
+             FROM review_cards rc
+             JOIN concepts c ON c.id = rc.concept_id
+             LEFT JOIN concept_mastery m ON m.concept_id = c.id
+             WHERE rc.due IS NOT NULL AND rc.due <= ?1
+             ORDER BY rc.due ASC",
+        )?;
+        let mapped = stmt.query_map([now], map_progress)?;
+        let mut out = Vec::new();
+        for row in mapped {
+            let (id, name, pk, due, att) = row?;
+            out.push(crate::models::ConceptProgress {
+                concept_id: id,
+                name,
+                p_known: pk,
+                due,
+                attempts: att,
+            });
+        }
+        Ok(out)
+    })?;
+    Ok(rows)
+}
+
+pub fn get_streak(db: &Db, today: &str) -> Result<i64, AppError> {
+    let days: Vec<String> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT day FROM study_days")?;
+        let mapped = stmt.query_map([], |r| r.get::<_, String>(0))?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    let mut set: std::collections::HashSet<i64> = std::collections::HashSet::new();
+    for d in &days {
+        if let Some(n) = parse_day(d) {
+            set.insert(n);
+        }
+    }
+    let today_num = parse_day(today)
+        .ok_or_else(|| AppError::BadInput(format!("invalid day string: {today}")))?;
+    let mut streak = 0i64;
+    let mut cur = if set.contains(&today_num) {
+        today_num
+    } else {
+        today_num - 1
+    };
+    while set.contains(&cur) {
+        streak += 1;
+        cur -= 1;
+    }
+    Ok(streak)
+}
+
 pub fn get_mastery(
     db: &Db,
     concept_id: i64,
