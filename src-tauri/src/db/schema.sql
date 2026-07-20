@@ -111,3 +111,22 @@ CREATE TABLE chat_messages (
   fsm_state TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
+
+-- One graded answer per (session, question): stops a fast double-click from
+-- double-counting mastery and score.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_answer
+  ON quiz_answers(session_id, question_id);
+
+-- Exactly one correct option per question (invariant enforced at the DB
+-- level, not just by a unit test against the hardcoded seed).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_one_correct_option
+  ON question_options(question_id) WHERE is_correct = 1;
+
+-- FK indexes (content grows per the roadmap).
+CREATE INDEX IF NOT EXISTS ix_chapters_subject ON chapters(subject_id);
+CREATE INDEX IF NOT EXISTS ix_concepts_chapter ON concepts(chapter_id);
+CREATE INDEX IF NOT EXISTS ix_chapter_text_chapter ON chapter_text(chapter_id);
+CREATE INDEX IF NOT EXISTS ix_questions_concept ON questions(concept_id);
+CREATE INDEX IF NOT EXISTS ix_question_options_question ON question_options(question_id);
+CREATE INDEX IF NOT EXISTS ix_quiz_answers_session ON quiz_answers(session_id);
+CREATE INDEX IF NOT EXISTS ix_chat_messages_chapter ON chat_messages(chapter_id);

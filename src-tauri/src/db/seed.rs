@@ -66,7 +66,8 @@ const CHAPTERS: &[ChapterSeed] = &[
         ord: 1,
         title: "Force and Pressure",
         title_hi: "बल और दाब",
-        summary: "How pushes and pulls change motion, and how force spread over area becomes pressure.",
+        summary:
+            "How pushes and pulls change motion, and how force spread over area becomes pressure.",
     },
     ChapterSeed {
         id: 2,
@@ -87,15 +88,87 @@ const CHAPTERS: &[ChapterSeed] = &[
 ];
 
 const CONCEPTS: &[ConceptSeed] = &[
-    ConceptSeed { id: 1, chapter_id: 1, ord: 1, name: "Force basics", key_formula: "F causes change in state of motion", common_error: "Confusing mass with weight", exam_weight: 3 },
-    ConceptSeed { id: 2, chapter_id: 1, ord: 2, name: "Pressure", key_formula: "P = F/A", common_error: "Forgetting area is in the denominator", exam_weight: 5 },
-    ConceptSeed { id: 3, chapter_id: 1, ord: 3, name: "Atmospheric pressure", key_formula: "", common_error: "", exam_weight: 2 },
-    ConceptSeed { id: 4, chapter_id: 2, ord: 1, name: "Types of friction", key_formula: "", common_error: "Thinking rolling friction > sliding friction", exam_weight: 3 },
-    ConceptSeed { id: 5, chapter_id: 2, ord: 2, name: "Factors affecting friction", key_formula: "", common_error: "", exam_weight: 3 },
-    ConceptSeed { id: 6, chapter_id: 2, ord: 3, name: "Reducing friction", key_formula: "", common_error: "", exam_weight: 2 },
-    ConceptSeed { id: 7, chapter_id: 3, ord: 1, name: "Cell discovery", key_formula: "", common_error: "", exam_weight: 1 },
-    ConceptSeed { id: 8, chapter_id: 3, ord: 2, name: "Plant vs animal cells", key_formula: "", common_error: "Assuming all cells have cell walls", exam_weight: 4 },
-    ConceptSeed { id: 9, chapter_id: 3, ord: 3, name: "Cell organelles", key_formula: "", common_error: "", exam_weight: 4 },
+    ConceptSeed {
+        id: 1,
+        chapter_id: 1,
+        ord: 1,
+        name: "Force basics",
+        key_formula: "F causes change in state of motion",
+        common_error: "Confusing mass with weight",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 2,
+        chapter_id: 1,
+        ord: 2,
+        name: "Pressure",
+        key_formula: "P = F/A",
+        common_error: "Forgetting area is in the denominator",
+        exam_weight: 5,
+    },
+    ConceptSeed {
+        id: 3,
+        chapter_id: 1,
+        ord: 3,
+        name: "Atmospheric pressure",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 2,
+    },
+    ConceptSeed {
+        id: 4,
+        chapter_id: 2,
+        ord: 1,
+        name: "Types of friction",
+        key_formula: "",
+        common_error: "Thinking rolling friction > sliding friction",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 5,
+        chapter_id: 2,
+        ord: 2,
+        name: "Factors affecting friction",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 6,
+        chapter_id: 2,
+        ord: 3,
+        name: "Reducing friction",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 2,
+    },
+    ConceptSeed {
+        id: 7,
+        chapter_id: 3,
+        ord: 1,
+        name: "Cell discovery",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 1,
+    },
+    ConceptSeed {
+        id: 8,
+        chapter_id: 3,
+        ord: 2,
+        name: "Plant vs animal cells",
+        key_formula: "",
+        common_error: "Assuming all cells have cell walls",
+        exam_weight: 4,
+    },
+    ConceptSeed {
+        id: 9,
+        chapter_id: 3,
+        ord: 3,
+        name: "Cell organelles",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 4,
+    },
 ];
 
 const SNIPPETS: &[SnippetSeed] = &[
@@ -159,9 +232,18 @@ const QUESTIONS: &[QSeed] = &[
 ];
 
 const PREREQS: &[PrereqSeed] = &[
-    PrereqSeed { concept_id: 2, prereq_id: 1 },
-    PrereqSeed { concept_id: 5, prereq_id: 4 },
-    PrereqSeed { concept_id: 9, prereq_id: 8 },
+    PrereqSeed {
+        concept_id: 2,
+        prereq_id: 1,
+    },
+    PrereqSeed {
+        concept_id: 5,
+        prereq_id: 4,
+    },
+    PrereqSeed {
+        concept_id: 9,
+        prereq_id: 8,
+    },
 ];
 
 pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {
@@ -171,32 +253,33 @@ pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {
     }
 
     db.with(|c| {
+        let tx = c.transaction()?;
         for s in SUBJECTS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO subjects (id, grade, name, name_hi) VALUES (?1,?2,?3,?4)",
                 (s.id, s.grade, s.name, s.name_hi),
             )?;
         }
         for ch in CHAPTERS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO chapters (id, subject_id, ord, title, title_hi, summary) VALUES (?1,?2,?3,?4,?5,?6)",
                 (ch.id, ch.subject_id, ch.ord, ch.title, ch.title_hi, ch.summary),
             )?;
         }
         for cn in CONCEPTS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO concepts (id, chapter_id, ord, name, key_formula, common_error, exam_weight) VALUES (?1,?2,?3,?4,?5,?6,?7)",
                 (cn.id, cn.chapter_id, cn.ord, cn.name, cn.key_formula, cn.common_error, cn.exam_weight),
             )?;
         }
         for sn in SNIPPETS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO chapter_text (id, chapter_id, concept_id, ord, body) VALUES (?1,?2,?3,?4,?5)",
                 (sn.id, sn.chapter_id, sn.concept_id, sn.ord, sn.body),
             )?;
         }
         for q in QUESTIONS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO questions (id, concept_id, qtype, bloom_level, difficulty_layer, prompt, trap, explanation) VALUES (?1,?2,'mcq',?3,?4,?5,?6,?7)",
                 (q.id, q.concept_id, q.bloom, q.difficulty_layer, q.prompt, q.trap, q.explanation),
             )?;
@@ -208,14 +291,14 @@ pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {
             ];
             shuffle4(&mut pairs, q.id);
             for (ord, (body, is_correct)) in pairs.iter().enumerate() {
-                c.execute(
+                tx.execute(
                     "INSERT INTO question_options (question_id, ord, body, is_correct) VALUES (?1,?2,?3,?4)",
                     (q.id, ord as i64 + 1, *body, if *is_correct { 1 } else { 0 }),
                 )?;
             }
         }
         for p in PREREQS {
-            c.execute(
+            tx.execute(
                 "INSERT INTO concept_prereqs (concept_id, prereq_id) VALUES (?1,?2)",
                 (p.concept_id, p.prereq_id),
             )?;
@@ -223,11 +306,12 @@ pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {
         // Seed initial mastery so progress is meaningful before any quiz.
         let now = now_secs();
         for cn in CONCEPTS {
-            c.execute(
+            tx.execute(
                 "INSERT OR IGNORE INTO concept_mastery (concept_id, p_known, attempts, correct, updated_at) VALUES (?1,0.2,0,0,?2)",
                 (cn.id, now),
             )?;
         }
+        tx.commit()?;
         Ok::<(), rusqlite::Error>(())
     })?;
 
@@ -243,7 +327,7 @@ fn now_secs() -> i64 {
 
 /// Deterministic Fisher-Yates permutation of 4 items seeded by `seed`.
 fn shuffle4<T>(arr: &mut [T; 4], seed: i64) {
-    let mut s: u64 = (seed.unsigned_abs() | 1) as u64;
+    let mut s: u64 = seed.unsigned_abs() | 1;
     for i in (1..4).rev() {
         s = s
             .wrapping_mul(6364136223846793005)

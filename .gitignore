@@ -7,3 +7,6 @@ src-tauri/target/
 # local tool state — not part of the project
 .agentflare/
 .claude/
+
+# internal project docs — kept locally, not published to the repo
+docs/*.md

@@ -9,13 +9,19 @@ import type { Chapter } from "../lib/ipc";
 
 type TFn = (k: string) => string;
 
-const STATE_LABEL: Record<string, string> = {
-  Probe: "Probe",
-  Clarify: "Clarify",
-  Confront: "Confront",
-  Scaffold: "Scaffold",
-  Confirm: "Confirm",
+const STATE_KEY: Record<string, string> = {
+  Probe: "stateProbe",
+  Clarify: "stateClarify",
+  Confront: "stateConfront",
+  Scaffold: "stateScaffold",
+  Confirm: "stateConfirm",
 };
+
+// The persisted FSM string may carry a scaffold-turn counter ("Scaffold:3");
+// strip it for display/label lookup.
+const baseState = (fsm: string) => fsm.split(":")[0];
+const stateLabel = (fsm: string, t: TFn) =>
+  t(STATE_KEY[baseState(fsm)] ?? "stateProbe");
 
 export default function Tutor({
   chapter,
@@ -32,31 +38,50 @@ export default function Tutor({
   const fsmRef = useRef(fsm);
   fsmRef.current = fsm;
   const streamingId = useRef<number>(-1);
-  const opened = useRef(false);
+  // Monotonic counter for synthetic message ids so the optimistic student
+  // bubble and the streamed tutor stub can never collide as React keys.
+  const synthId = useRef(-1);
+  const nextSynthId = () => {
+    synthId.current -= 1;
+    return synthId.current;
+  };
 
   useEffect(() => {
+    let cancelled = false;
     setMessages([]);
     setFsm("Probe");
-    opened.current = false;
     streamingId.current = -1;
     getChatHistory(chapter.id)
       .then((hist) => {
+        if (cancelled) return;
         setMessages(hist);
-        if (hist.length === 0 && !opened.current) {
-          opened.current = true;
+        // Only open the probe once; the cancelled flag also guards React 18
+        // StrictMode's double-invoked effect, which would otherwise persist
+        // two opening turns.
+        if (hist.length === 0 && !busy) {
           doSend("");
         }
       })
-      .catch(() => setMessages([]));
+      .catch(() => {
+        if (!cancelled) setMessages([]);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter.id]);
 
   useEffect(() => {
     let unlisten: UnlistenFn | undefined;
-    const p = listen<{ text?: string; state?: string }>(
+    const p = listen<{ text?: string; state?: string; chapterId?: number }>(
       "tutor-stream",
       (e) => {
         const payload = e.payload;
+        // Cross-chapter guard: a token/state from a previous chapter's stream
+        // must not bleed into the current chapter's chat.
+        if (
+          payload.chapterId !== undefined &&
+          payload.chapterId !== chapter.id
+        ) {
+          return;
+        }
         if (payload.text !== undefined) {
           setMessages((prev) => {
             const copy = [...prev];
@@ -71,7 +96,7 @@ export default function Tutor({
                 body: last.body + payload.text,
               };
             } else {
-              const id = -Date.now();
+              const id = nextSynthId();
               streamingId.current = id;
               copy.push({
                 id,
@@ -101,7 +126,7 @@ export default function Tutor({
     const trimmed = text.trim();
     if (trimmed.length > 0) {
       const studentMsg: ChatMessage = {
-        id: -Date.now(),
+        id: nextSynthId(),
         chapterId: chapter.id,
         role: "student",
         body: trimmed,
@@ -150,9 +175,9 @@ export default function Tutor({
       <h2>
         {t("tutor")} — {chapter.titleHi || chapter.title}
       </h2>
-      <div className="fsm-badge">{STATE_LABEL[fsm] ?? fsm}</div>
+      <div className="fsm-badge">{stateLabel(fsm, t)}</div>
 
-      <div className="chat">
+      <div className="chat" role="log" aria-live="polite">
         {messages.map((m) => (
           <div
             key={m.id}
