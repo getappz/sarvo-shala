@@ -37,3 +37,4 @@ pub trait SpeechEngine: Send + Sync {}
 
 pub mod classify;
 pub mod retriever;
+pub mod socratic;
