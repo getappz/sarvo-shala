@@ -18,7 +18,7 @@ pub fn run() {
       }
       let dir = app.path().app_data_dir()?;
       std::fs::create_dir_all(&dir)?;
-      let db_path = dir.join("swayam.db");
+      let db_path = dir.join("sarvo-shala.db");
       let db = crate::db::Db::open_or_init(&db_path)?;
       crate::db::seed::seed_if_empty(&db)?;
       app.manage(db);
@@ -26,7 +26,10 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       commands::settings::get_settings,
-      commands::settings::complete_wizard
+      commands::settings::complete_wizard,
+      commands::curriculum::list_subjects,
+      commands::curriculum::list_chapters,
+      commands::curriculum::list_concepts
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

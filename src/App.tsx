@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { getSettings, type Settings } from "./lib/ipc";
+import { getSettings, type Settings, type Chapter } from "./lib/ipc";
 import { useT } from "./lib/i18n";
 import Wizard from "./screens/Wizard";
+import Browse from "./screens/Browse";
 
 type Tab = "browse" | "tutor" | "quiz" | "progress";
 
 export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tab, setTab] = useState<Tab>("browse");
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const t = useT((settings?.language as "en" | "hi") ?? "en");
 
   useEffect(() => {
     getSettings()
       .then(setSettings)
-      .catch(() => setSettings({ language: "en", grade: 8, board: "CBSE", onboarded: false }));
+      .catch(() =>
+        setSettings({ language: "en", grade: 8, board: "CBSE", onboarded: false })
+      );
   }, []);
 
   if (!settings) return <p className="center">{t("loading")}</p>;
@@ -23,6 +27,15 @@ export default function App() {
   }
 
   const tabs: Tab[] = ["browse", "tutor", "quiz", "progress"];
+
+  const openTutor = (c: Chapter) => {
+    setSelectedChapter(c);
+    setTab("tutor");
+  };
+  const openQuiz = (c: Chapter) => {
+    setSelectedChapter(c);
+    setTab("quiz");
+  };
 
   return (
     <div className="app">
@@ -38,9 +51,21 @@ export default function App() {
         ))}
       </header>
       <main className="content">
-        <p>
-          {t(tab)} {t("loading")}
-        </p>
+        {tab === "browse" && (
+          <Browse
+            grade={settings.grade}
+            t={t}
+            onAskTutor={openTutor}
+            onStartQuiz={openQuiz}
+          />
+        )}
+        {(tab === "tutor" || tab === "quiz" || tab === "progress") && (
+          <p>
+            {selectedChapter
+              ? `${t(tab)} — ${selectedChapter.title} (${t("loading")})`
+              : t("browse")}
+          </p>
+        )}
       </main>
     </div>
   );

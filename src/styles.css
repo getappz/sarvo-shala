@@ -92,3 +92,120 @@ button {
   font-family: inherit;
 }
 
+.subject-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.browse-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
+.chapter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chapter {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.chapter span {
+  font-size: 12px;
+  color: #555;
+}
+
+.chapter.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.concept-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.concept-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.concept-name {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.formula {
+  display: inline-block;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.weight {
+  margin: 6px 0;
+  color: #2563eb;
+  font-size: 12px;
+}
+
+.weight-label {
+  color: #888;
+}
+
+.common-error {
+  font-size: 12px;
+  color: #b45309;
+  background: #fffbeb;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.chapter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.notice {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+
