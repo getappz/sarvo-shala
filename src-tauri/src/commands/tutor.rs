@@ -119,6 +119,7 @@ pub(crate) async fn run_turn(
     let req = GenRequest {
         system: engine.directive().to_string(),
         user: student_msg.to_string(),
+        state: engine.state.to_string(),
         context: snippets.iter().map(|s| s.body.clone()).collect(),
     };
 

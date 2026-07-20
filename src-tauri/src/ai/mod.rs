@@ -5,6 +5,7 @@ use crate::error::AppError;
 pub struct GenRequest {
     pub system: String,
     pub user: String,
+    pub state: String,
     pub context: Vec<String>,
 }
 
