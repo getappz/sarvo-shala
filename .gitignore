@@ -3,3 +3,7 @@ dist/
 src-tauri/target/
 *.log
 *.tsbuildinfo
+
+# local tool state — not part of the project
+.agentflare/
+.claude/

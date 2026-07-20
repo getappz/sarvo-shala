@@ -1,0 +1,30 @@
+name: security-check
+
+# No paths filter: "cargo audit" is a required branch-protection check, and a
+# path-filtered required check never reports on PRs that skip it — blocking
+# the merge forever. Audit is cheap with a warm cache; run it everywhere.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+jobs:
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2 # zizmor: ignore[cache-poisoning] save-if already gates writes to main
+        with:
+          workspaces: src-tauri
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo install cargo-audit
+      - run: cargo audit
+        working-directory: src-tauri

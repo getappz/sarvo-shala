@@ -1,0 +1,61 @@
+name: CLA Assistant
+
+on:
+  issue_comment:
+    types: [created]
+  # zizmor: ignore[dangerous-triggers] — pull_request_target is required for CLA signing
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  cla:
+    # Skip the job outright for the maintainer's own PRs and bot PRs — the
+    # allowlist below would auto-pass them anyway, so the run is pure noise.
+    # issue_comment events always run: that's how contributors sign.
+    if: >-
+      github.event_name == 'issue_comment' ||
+      (github.event.pull_request.user.login != 'getappz' &&
+       !endsWith(github.event.pull_request.user.login, '[bot]'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: CLA Assistant
+        # Only act on the sign/recheck comment phrases or on PR lifecycle events.
+        if: >-
+          (github.event.comment.body == 'recreate-cla' ||
+           github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') ||
+          github.event_name == 'pull_request_target'
+        # Pinned to the v2.6.1 commit SHA (supply-chain hardening; a moving tag
+        # could be repointed to malicious code). Bump deliberately when upgrading.
+        uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Required one-time setup: create a fine-grained PAT with Contents:
+          # write on this repo and add it as the CLA_SIGNATURES_TOKEN repo
+          # secret. GITHUB_TOKEN alone cannot push to cla-signatures.
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.CLA_SIGNATURES_TOKEN }}
+        with:
+          path-to-document: 'https://github.com/getappz/sarvo-shala/blob/main/CLA.md'
+          path-to-signatures: 'signatures/v1/cla.json'
+          # Signatures are stored on a dedicated branch to keep main's history clean.
+          branch: 'cla-signatures'
+          # Maintainer + bots never need to sign.
+          allowlist: 'getappz,dependabot[bot],*[bot]'
+          custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
+          custom-notsigned-prcomment: |
+            👋 Thanks for the contribution — we would love to merge it!
+
+            One **one-time** step remains: please sign our [CLA](https://github.com/getappz/sarvo-shala/blob/main/CLA.md). It takes ~5 seconds, you sign **once**, and every future PR is then accepted automatically. The CLA keeps Sarvo Shala **AGPL-3.0-licensed and free for individual developers** (guaranteed in §8) while still allowing a hosted/commercial plane.
+
+            **To sign:** reply to this PR with a comment containing exactly:
+
+            > I have read the CLA Document and I hereby sign the CLA
+          custom-allsigned-prcomment: 'All contributors have signed the CLA. ✅'
