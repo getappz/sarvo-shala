@@ -119,6 +119,23 @@ pub fn chapter_snippets(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String)>, 
     Ok(rows)
 }
 
+/// Rows of `chapter_text` for retrieval scoring: (id, body, ord).
+pub fn chapter_text_rows(
+    db: &Db,
+    chapter_id: i64,
+) -> Result<Vec<(i64, String, i64)>, AppError> {
+    let rows = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id, body, ord FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord",
+        )?;
+        let mapped = stmt.query_map([chapter_id], |r| {
+            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?))
+        })?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    Ok(rows)
+}
+
 pub fn correct_option(db: &Db, question_id: i64) -> Result<i64, AppError> {
     let id: i64 = db.with(|c| {
         c.query_row(
