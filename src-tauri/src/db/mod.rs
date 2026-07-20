@@ -5,6 +5,27 @@ use std::sync::{Arc, Mutex};
 pub mod queries;
 pub mod seed;
 
+/// Current schema version. Bump when `schema.sql` gains new tables/indexes so
+/// existing databases are migrated via [`MIGRATION_SQL`] instead of re-seeded.
+const SCHEMA_VERSION: i32 = 2;
+
+/// Applied to any database whose `user_version` is below [`SCHEMA_VERSION`].
+/// Uses `IF NOT EXISTS` so it is safe to re-run and to run after a full
+/// `schema.sql` (which already includes these objects on a fresh DB).
+const MIGRATION_SQL: &str = "
+  CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_answer
+    ON quiz_answers(session_id, question_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS uq_one_correct_option
+    ON question_options(question_id) WHERE is_correct = 1;
+  CREATE INDEX IF NOT EXISTS ix_chapters_subject ON chapters(subject_id);
+  CREATE INDEX IF NOT EXISTS ix_concepts_chapter ON concepts(chapter_id);
+  CREATE INDEX IF NOT EXISTS ix_chapter_text_chapter ON chapter_text(chapter_id);
+  CREATE INDEX IF NOT EXISTS ix_questions_concept ON questions(concept_id);
+  CREATE INDEX IF NOT EXISTS ix_question_options_question ON question_options(question_id);
+  CREATE INDEX IF NOT EXISTS ix_quiz_answers_session ON quiz_answers(session_id);
+  CREATE INDEX IF NOT EXISTS ix_chat_messages_chapter ON chat_messages(chapter_id);
+";
+
 pub struct Db {
     inner: Arc<Mutex<rusqlite::Connection>>,
 }
@@ -25,7 +46,10 @@ impl Db {
         let uv: i32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         if uv == 0 {
             conn.execute_batch(include_str!("schema.sql"))?;
-            conn.pragma_update(None, "user_version", 1)?;
+            conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        } else if uv < SCHEMA_VERSION {
+            conn.execute_batch(MIGRATION_SQL)?;
+            conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
         Ok(Db {
             inner: Arc::new(Mutex::new(conn)),
@@ -34,10 +58,13 @@ impl Db {
 
     pub fn with<T>(
         &self,
-        f: impl FnOnce(&rusqlite::Connection) -> rusqlite::Result<T>,
+        f: impl FnOnce(&mut rusqlite::Connection) -> rusqlite::Result<T>,
     ) -> Result<T, AppError> {
-        let conn = self.inner.lock().unwrap();
-        Ok(f(&conn)?)
+        // Recover from a poisoned lock instead of panicking every later
+        // command: a panic while a previous `db.with(..)` closure held the
+        // lock poisons the mutex, but the data underneath is still usable.
+        let mut conn = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        Ok(f(&mut conn)?)
     }
 }
 
@@ -67,8 +94,8 @@ mod tests {
         let uv2: i32 = db2
             .with(|c| c.query_row("PRAGMA user_version", [], |r| r.get(0)))
             .unwrap();
-        assert_eq!(uv1, 1);
-        assert_eq!(uv2, 1);
+        assert_eq!(uv1, SCHEMA_VERSION);
+        assert_eq!(uv2, SCHEMA_VERSION);
         let _ = std::fs::remove_file(&p);
     }
 

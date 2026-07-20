@@ -11,11 +11,13 @@ import {
 export default function Browse({
   grade,
   t,
+  language,
   onAskTutor,
   onStartQuiz,
 }: {
   grade: number;
   t: (k: string) => string;
+  language: string;
   onAskTutor: (c: Chapter) => void;
   onStartQuiz: (c: Chapter) => void;
 }) {
@@ -62,7 +64,7 @@ export default function Browse({
             className={s.id === subjectId ? "chip active" : "chip"}
             onClick={() => setSubjectId(s.id)}
           >
-            {s.name}
+            {language === "hi" ? s.nameHi || s.name : s.name}
           </button>
         ))}
       </div>
@@ -75,7 +77,7 @@ export default function Browse({
                 className={c.id === chapterId ? "chapter active" : "chapter"}
                 onClick={() => setChapterId(c.id)}
               >
-                <strong>{c.title}</strong>
+                <strong>{language === "hi" ? c.titleHi || c.title : c.title}</strong>
                 <span>{c.summary}</span>
               </button>
             </li>
@@ -84,7 +86,11 @@ export default function Browse({
 
         {activeChapter && (
           <div className="concept-detail">
-            <h3>{activeChapter.title}</h3>
+            <h3>
+              {language === "hi"
+                ? activeChapter.titleHi || activeChapter.title
+                : activeChapter.title}
+            </h3>
             <div className="concept-cards">
               {concepts.map((cn) => (
                 <div key={cn.id} className="concept-card">
@@ -94,7 +100,7 @@ export default function Browse({
                   )}
                   <div className="weight">
                     {"●".repeat(cn.examWeight)}
-                    <span className="weight-label"> weight</span>
+                    <span className="weight-label"> {t("weight")}</span>
                   </div>
                   {cn.commonError && (
                     <div className="common-error">⚠ {cn.commonError}</div>

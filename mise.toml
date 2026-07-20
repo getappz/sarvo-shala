@@ -19,3 +19,36 @@ run = "cargo tauri build"
 [tasks.web]
 description = "Run only the Vite frontend (browser preview)"
 run = "bun run dev"
+
+
+[tasks.check]
+description = "Type-check the frontend (tsc, no emit)"
+run = "bun run check"
+
+[tasks.test]
+description = "Run backend Rust tests"
+dir = "src-tauri"
+run = "cargo test"
+
+[tasks.lint]
+description = "Run clippy with warnings denied"
+dir = "src-tauri"
+run = "cargo clippy -- -D warnings"
+
+[tasks.fmt]
+description = "Format Rust source"
+dir = "src-tauri"
+run = "cargo fmt"
+
+[tasks.fmt-check]
+description = "Check Rust formatting without modifying files"
+dir = "src-tauri"
+run = "cargo fmt -- --check"
+
+[tasks.verify]
+description = "Full acceptance gate: frontend check + backend test + clippy + fmt-check (Task 13 definition of done)"
+depends = ["check", "test", "lint", "fmt-check"]
+
+[tasks.clean-db]
+description = "Delete the local dev SQLite db (app_data_dir) for a fresh first-run test"
+run = "rm -f \"$HOME/.local/share/ai.sarvo.shala/sarvo-shala.db\"*"

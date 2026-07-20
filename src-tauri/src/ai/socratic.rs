@@ -29,7 +29,9 @@ pub struct SocraticEngine {
     pub scaffold_turns: u32,
 }
 
-pub const MAX_SCAFFOLD_TURNS: u32 = 4;
+/// Maximum number of consecutive `Scaffold` turns before the engine escapes
+/// to `Confirm`. The escape fires once `scaffold_turns` reaches this value.
+pub const MAX_SCAFFOLD_TURNS: u32 = 5;
 
 fn next_state(current: SocState, q: ResponseQuality) -> SocState {
     match (current, q) {
@@ -72,7 +74,43 @@ impl SocraticEngine {
             scaffold_turns: 0,
         }
     }
+}
 
+/// Encode the FSM state plus the `scaffold_turns` counter into the single
+/// string that is round-tripped to/from the frontend, e.g. `"Scaffold:3"`.
+/// Other states are encoded as their plain name (counter is only meaningful
+/// in `Scaffold`), so existing callers that send `"Probe"`/`"Confirm"` keep
+/// working unchanged.
+pub fn encode_fsm(state: SocState, scaffold_turns: u32) -> String {
+    if state == SocState::Scaffold && scaffold_turns > 0 {
+        format!("Scaffold:{}", scaffold_turns)
+    } else {
+        state.to_string()
+    }
+}
+
+/// Parse an encoded FSM string back into its base [`SocState`] and the
+/// persisted `scaffold_turns` counter. Tolerates plain names (counter 0) and
+/// unknown values (falls back to `Probe`).
+pub fn parse_fsm(s: &str) -> (SocState, u32) {
+    let parse_base = |base: &str| -> SocState {
+        match base {
+            "Probe" => SocState::Probe,
+            "Clarify" => SocState::Clarify,
+            "Confront" => SocState::Confront,
+            "Scaffold" => SocState::Scaffold,
+            "Confirm" => SocState::Confirm,
+            _ => SocState::Probe,
+        }
+    };
+    if let Some((base, n)) = s.split_once(':') {
+        (parse_base(base), n.parse::<u32>().unwrap_or(0))
+    } else {
+        (parse_base(s), 0)
+    }
+}
+
+impl SocraticEngine {
     /// Static transition table on (state, quality); increments/resets
     /// scaffold_turns; Scaffold beyond MAX_SCAFFOLD_TURNS → Confirm escape hatch.
     pub fn transition(&mut self, q: ResponseQuality) -> SocState {
@@ -83,7 +121,7 @@ impl SocraticEngine {
             } else {
                 self.scaffold_turns = 0;
             }
-            if self.scaffold_turns > MAX_SCAFFOLD_TURNS {
+            if self.scaffold_turns >= MAX_SCAFFOLD_TURNS {
                 self.scaffold_turns = 0;
                 self.state = SocState::Confirm;
                 return self.state;
