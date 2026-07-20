@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  sarvo_shala_lib::run();
+    sarvo_shala_lib::run();
 }

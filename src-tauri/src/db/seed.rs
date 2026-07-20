@@ -66,7 +66,8 @@ const CHAPTERS: &[ChapterSeed] = &[
         ord: 1,
         title: "Force and Pressure",
         title_hi: "बल और दाब",
-        summary: "How pushes and pulls change motion, and how force spread over area becomes pressure.",
+        summary:
+            "How pushes and pulls change motion, and how force spread over area becomes pressure.",
     },
     ChapterSeed {
         id: 2,
@@ -87,15 +88,87 @@ const CHAPTERS: &[ChapterSeed] = &[
 ];
 
 const CONCEPTS: &[ConceptSeed] = &[
-    ConceptSeed { id: 1, chapter_id: 1, ord: 1, name: "Force basics", key_formula: "F causes change in state of motion", common_error: "Confusing mass with weight", exam_weight: 3 },
-    ConceptSeed { id: 2, chapter_id: 1, ord: 2, name: "Pressure", key_formula: "P = F/A", common_error: "Forgetting area is in the denominator", exam_weight: 5 },
-    ConceptSeed { id: 3, chapter_id: 1, ord: 3, name: "Atmospheric pressure", key_formula: "", common_error: "", exam_weight: 2 },
-    ConceptSeed { id: 4, chapter_id: 2, ord: 1, name: "Types of friction", key_formula: "", common_error: "Thinking rolling friction > sliding friction", exam_weight: 3 },
-    ConceptSeed { id: 5, chapter_id: 2, ord: 2, name: "Factors affecting friction", key_formula: "", common_error: "", exam_weight: 3 },
-    ConceptSeed { id: 6, chapter_id: 2, ord: 3, name: "Reducing friction", key_formula: "", common_error: "", exam_weight: 2 },
-    ConceptSeed { id: 7, chapter_id: 3, ord: 1, name: "Cell discovery", key_formula: "", common_error: "", exam_weight: 1 },
-    ConceptSeed { id: 8, chapter_id: 3, ord: 2, name: "Plant vs animal cells", key_formula: "", common_error: "Assuming all cells have cell walls", exam_weight: 4 },
-    ConceptSeed { id: 9, chapter_id: 3, ord: 3, name: "Cell organelles", key_formula: "", common_error: "", exam_weight: 4 },
+    ConceptSeed {
+        id: 1,
+        chapter_id: 1,
+        ord: 1,
+        name: "Force basics",
+        key_formula: "F causes change in state of motion",
+        common_error: "Confusing mass with weight",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 2,
+        chapter_id: 1,
+        ord: 2,
+        name: "Pressure",
+        key_formula: "P = F/A",
+        common_error: "Forgetting area is in the denominator",
+        exam_weight: 5,
+    },
+    ConceptSeed {
+        id: 3,
+        chapter_id: 1,
+        ord: 3,
+        name: "Atmospheric pressure",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 2,
+    },
+    ConceptSeed {
+        id: 4,
+        chapter_id: 2,
+        ord: 1,
+        name: "Types of friction",
+        key_formula: "",
+        common_error: "Thinking rolling friction > sliding friction",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 5,
+        chapter_id: 2,
+        ord: 2,
+        name: "Factors affecting friction",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 3,
+    },
+    ConceptSeed {
+        id: 6,
+        chapter_id: 2,
+        ord: 3,
+        name: "Reducing friction",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 2,
+    },
+    ConceptSeed {
+        id: 7,
+        chapter_id: 3,
+        ord: 1,
+        name: "Cell discovery",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 1,
+    },
+    ConceptSeed {
+        id: 8,
+        chapter_id: 3,
+        ord: 2,
+        name: "Plant vs animal cells",
+        key_formula: "",
+        common_error: "Assuming all cells have cell walls",
+        exam_weight: 4,
+    },
+    ConceptSeed {
+        id: 9,
+        chapter_id: 3,
+        ord: 3,
+        name: "Cell organelles",
+        key_formula: "",
+        common_error: "",
+        exam_weight: 4,
+    },
 ];
 
 const SNIPPETS: &[SnippetSeed] = &[
@@ -159,9 +232,18 @@ const QUESTIONS: &[QSeed] = &[
 ];
 
 const PREREQS: &[PrereqSeed] = &[
-    PrereqSeed { concept_id: 2, prereq_id: 1 },
-    PrereqSeed { concept_id: 5, prereq_id: 4 },
-    PrereqSeed { concept_id: 9, prereq_id: 8 },
+    PrereqSeed {
+        concept_id: 2,
+        prereq_id: 1,
+    },
+    PrereqSeed {
+        concept_id: 5,
+        prereq_id: 4,
+    },
+    PrereqSeed {
+        concept_id: 9,
+        prereq_id: 8,
+    },
 ];
 
 pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {

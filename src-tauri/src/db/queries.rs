@@ -1,6 +1,8 @@
 use crate::db::Db;
 use crate::error::AppError;
-use crate::models::{AnswerReview, Chapter, ChatMessage, Concept, Question, QuestionOption, Subject};
+use crate::models::{
+    AnswerReview, Chapter, ChatMessage, Concept, Question, QuestionOption, Subject,
+};
 use rusqlite::OptionalExtension;
 
 pub fn set_setting(db: &Db, key: &str, value: &str) -> Result<(), AppError> {
@@ -16,11 +18,9 @@ pub fn set_setting(db: &Db, key: &str, value: &str) -> Result<(), AppError> {
 
 pub fn get_setting(db: &Db, key: &str) -> Result<Option<String>, AppError> {
     let v: Option<String> = db.with(|c| {
-        c.query_row(
-            "SELECT value FROM settings WHERE key = ?1",
-            [key],
-            |r| r.get(0),
-        )
+        c.query_row("SELECT value FROM settings WHERE key = ?1", [key], |r| {
+            r.get(0)
+        })
         .optional()
     })?;
     Ok(v)
@@ -65,24 +65,25 @@ pub fn list_chapters(db: &Db, subject_id: i64) -> Result<Vec<Chapter>, AppError>
 }
 
 pub fn get_chapter(db: &Db, id: i64) -> Result<Chapter, AppError> {
-    let ch: Chapter = db.with(|c| {
-        c.query_row(
-            "SELECT id, subject_id, ord, title, title_hi, summary FROM chapters WHERE id = ?1",
-            [id],
-            |r| {
-                Ok(Chapter {
-                    id: r.get(0)?,
-                    subject_id: r.get(1)?,
-                    ord: r.get(2)?,
-                    title: r.get(3)?,
-                    title_hi: r.get(4)?,
-                    summary: r.get(5)?,
-                })
-            },
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("chapter {id}")))?;
+    let ch: Chapter = db
+        .with(|c| {
+            c.query_row(
+                "SELECT id, subject_id, ord, title, title_hi, summary FROM chapters WHERE id = ?1",
+                [id],
+                |r| {
+                    Ok(Chapter {
+                        id: r.get(0)?,
+                        subject_id: r.get(1)?,
+                        ord: r.get(2)?,
+                        title: r.get(3)?,
+                        title_hi: r.get(4)?,
+                        summary: r.get(5)?,
+                    })
+                },
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("chapter {id}")))?;
     Ok(ch)
 }
 
@@ -110,26 +111,27 @@ pub fn list_concepts(db: &Db, chapter_id: i64) -> Result<Vec<Concept>, AppError>
 
 pub fn chapter_snippets(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String)>, AppError> {
     let rows = db.with(|c| {
-        let mut stmt = c.prepare(
-            "SELECT id, body FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord",
-        )?;
-        let mapped = stmt.query_map([chapter_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        let mut stmt =
+            c.prepare("SELECT id, body FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord")?;
+        let mapped = stmt.query_map([chapter_id], |r| {
+            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+        })?;
         mapped.collect::<rusqlite::Result<Vec<_>>>()
     })?;
     Ok(rows)
 }
 
 /// Rows of `chapter_text` for retrieval scoring: (id, body, ord).
-pub fn chapter_text_rows(
-    db: &Db,
-    chapter_id: i64,
-) -> Result<Vec<(i64, String, i64)>, AppError> {
+pub fn chapter_text_rows(db: &Db, chapter_id: i64) -> Result<Vec<(i64, String, i64)>, AppError> {
     let rows = db.with(|c| {
-        let mut stmt = c.prepare(
-            "SELECT id, body, ord FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord",
-        )?;
+        let mut stmt =
+            c.prepare("SELECT id, body, ord FROM chapter_text WHERE chapter_id = ?1 ORDER BY ord")?;
         let mapped = stmt.query_map([chapter_id], |r| {
-            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?))
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, i64>(2)?,
+            ))
         })?;
         mapped.collect::<rusqlite::Result<Vec<_>>>()
     })?;
@@ -137,19 +139,24 @@ pub fn chapter_text_rows(
 }
 
 pub fn correct_option(db: &Db, question_id: i64) -> Result<i64, AppError> {
-    let id: i64 = db.with(|c| {
-        c.query_row(
-            "SELECT id FROM question_options WHERE question_id = ?1 AND is_correct = 1",
-            [question_id],
-            |r| r.get(0),
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("correct option for question {question_id}")))?;
+    let id: i64 = db
+        .with(|c| {
+            c.query_row(
+                "SELECT id FROM question_options WHERE question_id = ?1 AND is_correct = 1",
+                [question_id],
+                |r| r.get(0),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("correct option for question {question_id}")))?;
     Ok(id)
 }
 
-pub fn questions_for_chapter(db: &Db, chapter_id: i64, limit: i64) -> Result<Vec<Question>, AppError> {
+pub fn questions_for_chapter(
+    db: &Db,
+    chapter_id: i64,
+    limit: i64,
+) -> Result<Vec<Question>, AppError> {
     let qids: Vec<i64> = db.with(|c| {
         let mut stmt = c.prepare(
             "SELECT q.id FROM questions q
@@ -172,32 +179,33 @@ pub fn questions_for_chapter(db: &Db, chapter_id: i64, limit: i64) -> Result<Vec
 }
 
 fn question_with_options(db: &Db, qid: i64) -> Result<Question, AppError> {
-    let q: Question = db.with(|c| {
-        c.query_row(
-            "SELECT id, concept_id, qtype, bloom_level, difficulty_layer, prompt
+    let q: Question = db
+        .with(|c| {
+            c.query_row(
+                "SELECT id, concept_id, qtype, bloom_level, difficulty_layer, prompt
              FROM questions WHERE id = ?1",
-            [qid],
-            |r| {
-                Ok(Question {
-                    id: r.get(0)?,
-                    concept_id: r.get(1)?,
-                    qtype: r.get(2)?,
-                    bloom_level: r.get(3)?,
-                    difficulty_layer: r.get(4)?,
-                    prompt: r.get(5)?,
-                    options: Vec::new(),
-                })
-            },
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("question {qid}")))?;
+                [qid],
+                |r| {
+                    Ok(Question {
+                        id: r.get(0)?,
+                        concept_id: r.get(1)?,
+                        qtype: r.get(2)?,
+                        bloom_level: r.get(3)?,
+                        difficulty_layer: r.get(4)?,
+                        prompt: r.get(5)?,
+                        options: Vec::new(),
+                    })
+                },
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("question {qid}")))?;
 
     let opts: Vec<(i64, String)> = db.with(|c| {
-        let mut stmt = c.prepare(
-            "SELECT id, body FROM question_options WHERE question_id = ?1 ORDER BY ord",
-        )?;
-        let mapped = stmt.query_map([qid], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        let mut stmt =
+            c.prepare("SELECT id, body FROM question_options WHERE question_id = ?1 ORDER BY ord")?;
+        let mapped =
+            stmt.query_map([qid], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
         mapped.collect::<rusqlite::Result<Vec<_>>>()
     })?;
 
@@ -214,7 +222,10 @@ fn question_with_options(db: &Db, qid: i64) -> Result<Question, AppError> {
         })
         .collect();
 
-    Ok(Question { options: ordered, ..q })
+    Ok(Question {
+        options: ordered,
+        ..q
+    })
 }
 
 /// Deterministic Fisher-Yates permutation of 4 indices seeded by `seed`.
@@ -315,16 +326,22 @@ pub fn update_mastery(
 pub fn get_review_card(
     db: &Db,
     concept_id: i64,
-) -> Result<
-    Option<(f64, f64, u32, u32, Option<i64>, Option<i64>)>,
-    AppError,
-> {
+) -> Result<Option<(f64, f64, u32, u32, Option<i64>, Option<i64>)>, AppError> {
     let v: Option<(f64, f64, i64, i64, Option<i64>, Option<i64>)> = db.with(|c| {
         c.query_row(
             "SELECT stability, difficulty, reps, lapses, last_review, due
              FROM review_cards WHERE concept_id = ?1",
             [concept_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
+            |r| {
+                Ok((
+                    r.get(0)?,
+                    r.get(1)?,
+                    r.get(2)?,
+                    r.get(3)?,
+                    r.get(4)?,
+                    r.get(5)?,
+                ))
+            },
         )
         .optional()
     })?;
@@ -361,10 +378,7 @@ pub fn upsert_review_card(
 
 pub fn upsert_study_day(db: &Db, day: &str) -> Result<(), AppError> {
     db.with(|c| {
-        c.execute(
-            "INSERT OR IGNORE INTO study_days (day) VALUES (?1)",
-            (day,),
-        )?;
+        c.execute("INSERT OR IGNORE INTO study_days (day) VALUES (?1)", (day,))?;
         Ok(())
     })?;
     Ok(())
@@ -375,18 +389,19 @@ fn build_answer_review(
     question_id: i64,
     chosen_option_id: i64,
 ) -> Result<AnswerReview, AppError> {
-    let (correct_option_id, explanation, trap): (i64, String, String) = db.with(|c| {
-        c.query_row(
-            "SELECT qo.id, q.explanation, q.trap
+    let (correct_option_id, explanation, trap): (i64, String, String) = db
+        .with(|c| {
+            c.query_row(
+                "SELECT qo.id, q.explanation, q.trap
              FROM questions q
              JOIN question_options qo ON qo.question_id = q.id AND qo.is_correct = 1
              WHERE q.id = ?1",
-            [question_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
+                [question_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
     let correct = chosen_option_id == correct_option_id;
     Ok(AnswerReview {
         question_id,
@@ -397,19 +412,17 @@ fn build_answer_review(
     })
 }
 
-pub fn quiz_session_summary(
-    db: &Db,
-    session_id: i64,
-) -> Result<(i64, i64, f64), AppError> {
-    let (total, correct): (i64, i64) = db.with(|c| {
-        c.query_row(
-            "SELECT count(*), sum(correct) FROM quiz_answers WHERE session_id = ?1",
-            [session_id],
-            |r| Ok((r.get(0)?, r.get::<_, i64>(1).unwrap_or(0))),
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("session {session_id}")))?;
+pub fn quiz_session_summary(db: &Db, session_id: i64) -> Result<(i64, i64, f64), AppError> {
+    let (total, correct): (i64, i64) = db
+        .with(|c| {
+            c.query_row(
+                "SELECT count(*), sum(correct) FROM quiz_answers WHERE session_id = ?1",
+                [session_id],
+                |r| Ok((r.get(0)?, r.get::<_, i64>(1).unwrap_or(0))),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("session {session_id}")))?;
     let score = if total > 0 {
         (correct as f64) / (total as f64) * 100.0
     } else {
@@ -420,8 +433,12 @@ pub fn quiz_session_summary(
 
 pub fn quiz_session_reviews(db: &Db, session_id: i64) -> Result<Vec<AnswerReview>, AppError> {
     let qids: Vec<(i64, i64)> = db.with(|c| {
-        let mut stmt = c.prepare("SELECT question_id, chosen_option_id FROM quiz_answers WHERE session_id = ?1")?;
-        let mapped = stmt.query_map([session_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)))?;
+        let mut stmt = c.prepare(
+            "SELECT question_id, chosen_option_id FROM quiz_answers WHERE session_id = ?1",
+        )?;
+        let mapped = stmt.query_map([session_id], |r| {
+            Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?))
+        })?;
         mapped.collect::<rusqlite::Result<Vec<_>>>()
     })?;
     let mut out = Vec::with_capacity(qids.len());
@@ -444,19 +461,17 @@ pub fn question_by_id(db: &Db, qid: i64) -> Result<Question, AppError> {
     question_with_options(db, qid)
 }
 
-pub fn question_concept_layer(
-    db: &Db,
-    question_id: i64,
-) -> Result<(i64, i64), AppError> {
-    let v: (i64, i64) = db.with(|c| {
-        c.query_row(
-            "SELECT concept_id, difficulty_layer FROM questions WHERE id = ?1",
-            [question_id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
+pub fn question_concept_layer(db: &Db, question_id: i64) -> Result<(i64, i64), AppError> {
+    let v: (i64, i64) = db
+        .with(|c| {
+            c.query_row(
+                "SELECT concept_id, difficulty_layer FROM questions WHERE id = ?1",
+                [question_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("question {question_id}")))?;
     Ok(v)
 }
 
@@ -504,9 +519,7 @@ fn parse_day(s: &str) -> Option<i64> {
     Some(days_from_civil(y, m, d) + 719_163)
 }
 
-fn map_progress(
-    r: &rusqlite::Row,
-) -> rusqlite::Result<(i64, String, f64, Option<i64>, i64)> {
+fn map_progress(r: &rusqlite::Row) -> rusqlite::Result<(i64, String, f64, Option<i64>, i64)> {
     Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
 }
 
@@ -555,10 +568,7 @@ pub fn get_progress(
     Ok(rows)
 }
 
-pub fn get_due(
-    db: &Db,
-    now: i64,
-) -> Result<Vec<crate::models::ConceptProgress>, AppError> {
+pub fn get_due(db: &Db, now: i64) -> Result<Vec<crate::models::ConceptProgress>, AppError> {
     let rows = db.with(|c| {
         let mut stmt = c.prepare(
             "SELECT c.id, c.name, COALESCE(m.p_known,0.2), rc.due, COALESCE(m.attempts,0)
@@ -612,19 +622,17 @@ pub fn get_streak(db: &Db, today: &str) -> Result<i64, AppError> {
     Ok(streak)
 }
 
-pub fn get_mastery(
-    db: &Db,
-    concept_id: i64,
-) -> Result<(f64, i64, i64), AppError> {
-    let v: (f64, i64, i64) = db.with(|c| {
-        c.query_row(
-            "SELECT p_known, attempts, correct FROM concept_mastery WHERE concept_id = ?1",
-            [concept_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-        )
-        .optional()
-    })?
-    .ok_or_else(|| AppError::NotFound(format!("mastery for concept {concept_id}")))?;
+pub fn get_mastery(db: &Db, concept_id: i64) -> Result<(f64, i64, i64), AppError> {
+    let v: (f64, i64, i64) = db
+        .with(|c| {
+            c.query_row(
+                "SELECT p_known, attempts, correct FROM concept_mastery WHERE concept_id = ?1",
+                [concept_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("mastery for concept {concept_id}")))?;
     Ok(v)
 }
 
@@ -692,4 +700,3 @@ mod tests {
         let _ = std::fs::remove_file(&p);
     }
 }
-

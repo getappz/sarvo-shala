@@ -24,12 +24,7 @@ fn tokenize(query: &str) -> Vec<String> {
 }
 
 impl Retriever for KeywordRetriever {
-    fn retrieve(
-        &self,
-        query: &str,
-        chapter_id: i64,
-        k: usize,
-    ) -> Result<Vec<Snippet>, AppError> {
+    fn retrieve(&self, query: &str, chapter_id: i64, k: usize) -> Result<Vec<Snippet>, AppError> {
         let tokens = tokenize(query);
         let rows = queries::chapter_text_rows(&self.db, chapter_id)?;
 
@@ -37,10 +32,7 @@ impl Retriever for KeywordRetriever {
             .into_iter()
             .map(|(id, body, ord)| {
                 let lower = body.to_lowercase();
-                let score = tokens
-                    .iter()
-                    .filter(|t| lower.contains(t.as_str()))
-                    .count() as f64;
+                let score = tokens.iter().filter(|t| lower.contains(t.as_str())).count() as f64;
                 (id, body, ord, score)
             })
             .collect();
@@ -62,11 +54,7 @@ impl Retriever for KeywordRetriever {
         Ok(scored
             .into_iter()
             .take(k)
-            .map(|(id, body, _, score)| Snippet {
-                id,
-                body,
-                score,
-            })
+            .map(|(id, body, _, score)| Snippet { id, body, score })
             .collect())
     }
 }
@@ -94,9 +82,7 @@ mod tests {
     fn retriever_finds_pressure_snippet() {
         let (db, p) = seeded();
         let r = super::KeywordRetriever::new(db);
-        let snips = r
-            .retrieve("what is pressure force area", 1, 3)
-            .unwrap();
+        let snips = r.retrieve("what is pressure force area", 1, 3).unwrap();
         assert!(!snips.is_empty());
         assert!(
             snips[0].body.to_lowercase().contains("pressure"),

@@ -83,7 +83,7 @@ fn next_stability(d: f64, s: f64, r: f64, rating: u8) -> f64 {
                 * s.powf(-W[9])
                 * (((1.0 - r) * W[10]).exp() - 1.0)
                 * hard_penalty
-            * easy_bonus);
+                * easy_bonus);
     new_s.max(0.1)
 }
 
@@ -169,7 +169,10 @@ mod tests {
         let c1 = review(&new_card(), Rating::Good, 1_000_000);
         let c2 = review(&c1, Rating::Again, c1.due.unwrap());
         assert_eq!(c2.lapses, 1);
-        assert!(c2.stability < c1.stability, "stability should shrink on Again");
+        assert!(
+            c2.stability < c1.stability,
+            "stability should shrink on Again"
+        );
     }
 
     #[test]

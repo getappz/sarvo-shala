@@ -20,12 +20,7 @@ pub trait InferenceBackend: Send + Sync {
 }
 
 pub trait Retriever: Send + Sync {
-    fn retrieve(
-        &self,
-        query: &str,
-        chapter_id: i64,
-        k: usize,
-    ) -> Result<Vec<Snippet>, AppError>;
+    fn retrieve(&self, query: &str, chapter_id: i64, k: usize) -> Result<Vec<Snippet>, AppError>;
 }
 
 pub struct Snippet {

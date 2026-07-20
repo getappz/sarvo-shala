@@ -6,13 +6,11 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_settings(state: State<Db>) -> Result<Settings, AppError> {
-    let language = queries::get_setting(&state, "language")?
-        .unwrap_or_else(|| "en".to_string());
+    let language = queries::get_setting(&state, "language")?.unwrap_or_else(|| "en".to_string());
     let grade = queries::get_setting(&state, "grade")?
         .and_then(|v| v.parse::<i64>().ok())
         .unwrap_or(8);
-    let board = queries::get_setting(&state, "board")?
-        .unwrap_or_else(|| "CBSE".to_string());
+    let board = queries::get_setting(&state, "board")?.unwrap_or_else(|| "CBSE".to_string());
     let onboarded = queries::get_setting(&state, "onboarded")?
         .map(|v| v == "true")
         .unwrap_or(false);

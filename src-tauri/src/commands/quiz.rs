@@ -47,10 +47,7 @@ fn layer_for(p_known: f64) -> i64 {
 }
 
 #[tauri::command]
-pub fn start_quiz(
-    state: State<Db>,
-    chapter_id: i64,
-) -> Result<(i64, Vec<Question>), AppError> {
+pub fn start_quiz(state: State<Db>, chapter_id: i64) -> Result<(i64, Vec<Question>), AppError> {
     let now = now_secs();
     let session_id = queries::insert_quiz_session(&state, chapter_id, now)?;
     let concepts = queries::concept_ids_for_chapter(&state, chapter_id)?;
@@ -59,7 +56,11 @@ pub fn start_quiz(
         let p = queries::concept_mastery_pknown(&state, cid)?;
         let layer = layer_for(p);
         let qid = queries::question_for_concept_layer(&state, cid, layer)?
-            .or_else(|| queries::question_for_concept_layer(&state, cid, 1).ok().flatten())
+            .or_else(|| {
+                queries::question_for_concept_layer(&state, cid, 1)
+                    .ok()
+                    .flatten()
+            })
             .ok_or_else(|| AppError::NotFound(format!("no question for concept {cid}")))?;
         questions.push(queries::question_by_id(&state, qid)?);
     }
@@ -199,13 +200,29 @@ mod tests {
 
         let p0 = queries::concept_mastery_pknown(&db, 1).unwrap();
         let (_, att, cor) = queries::get_mastery(&db, 1).unwrap();
-        queries::update_mastery(&db, 1, bkt::update(p0, true, &bkt::Params::default()), att + 1, cor + 1, 1_000_000).unwrap();
+        queries::update_mastery(
+            &db,
+            1,
+            bkt::update(p0, true, &bkt::Params::default()),
+            att + 1,
+            cor + 1,
+            1_000_000,
+        )
+        .unwrap();
         let p1 = queries::concept_mastery_pknown(&db, 1).unwrap();
         assert!(p1 > p0);
 
         let p2 = queries::concept_mastery_pknown(&db, 1).unwrap();
         let (_, att2, cor2) = queries::get_mastery(&db, 1).unwrap();
-        queries::update_mastery(&db, 1, bkt::update(p2, false, &bkt::Params::default()), att2 + 1, cor2, 1_000_001).unwrap();
+        queries::update_mastery(
+            &db,
+            1,
+            bkt::update(p2, false, &bkt::Params::default()),
+            att2 + 1,
+            cor2,
+            1_000_001,
+        )
+        .unwrap();
         let p3 = queries::concept_mastery_pknown(&db, 1).unwrap();
         assert!(p3 < p2);
         let _ = std::fs::remove_file(&p);
@@ -215,10 +232,16 @@ mod tests {
     fn difficulty_selection_follows_mastery() {
         let (db, p) = seeded();
         // Concept 1 default p_known is 0.2 -> layer 1.
-        assert_eq!(super::layer_for(queries::concept_mastery_pknown(&db, 1).unwrap()), 1);
+        assert_eq!(
+            super::layer_for(queries::concept_mastery_pknown(&db, 1).unwrap()),
+            1
+        );
         // Raise to 0.9 -> layer 3.
         queries::update_mastery(&db, 1, 0.9, 1, 1, 1_000_000).unwrap();
-        assert_eq!(super::layer_for(queries::concept_mastery_pknown(&db, 1).unwrap()), 3);
+        assert_eq!(
+            super::layer_for(queries::concept_mastery_pknown(&db, 1).unwrap()),
+            3
+        );
         let q = queries::question_for_concept_layer(&db, 1, 3).unwrap();
         assert!(q.is_some());
         let _ = std::fs::remove_file(&p);
@@ -239,4 +262,3 @@ mod tests {
         let _ = std::fs::remove_file(&p);
     }
 }
-

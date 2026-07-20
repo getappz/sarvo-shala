@@ -206,7 +206,9 @@ mod tests {
         // Opening.
         let noop = |_: StreamEvent| {};
         let rt = tokio::runtime::Runtime::new().unwrap();
-        let _ = rt.block_on(super::run_turn(&db, 1, "", "Probe", &noop)).unwrap();
+        let _ = rt
+            .block_on(super::run_turn(&db, 1, "", "Probe", &noop))
+            .unwrap();
         // Student reply with keywords from the seeded pressure snippet.
         let res = rt
             .block_on(super::run_turn(
