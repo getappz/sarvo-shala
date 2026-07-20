@@ -131,11 +131,6 @@ pub fn review(card: &Card, rating: Rating, now: i64) -> Card {
     new_card
 }
 
-/// Interval (days) until 90% retention — for FSRS-4.5 that is ~stability.
-pub fn next_interval_days(stability: f64) -> f64 {
-    stability
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

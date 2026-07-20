@@ -120,10 +120,10 @@ pub fn submit_answer(
         },
     };
     let rating = if review.correct {
-        if layer <= 2 {
-            fsrs::Rating::Good
-        } else {
-            fsrs::Rating::Easy
+        match layer {
+            3 => fsrs::Rating::Easy,
+            2 => fsrs::Rating::Good,
+            _ => fsrs::Rating::Hard,
         }
     } else {
         fsrs::Rating::Again

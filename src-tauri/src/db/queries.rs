@@ -1,6 +1,6 @@
 use crate::db::Db;
 use crate::error::AppError;
-use crate::models::{AnswerReview, Chapter, Concept, Question, QuestionOption, Subject};
+use crate::models::{AnswerReview, Chapter, ChatMessage, Concept, Question, QuestionOption, Subject};
 use rusqlite::OptionalExtension;
 
 pub fn set_setting(db: &Db, key: &str, value: &str) -> Result<(), AppError> {
@@ -626,6 +626,43 @@ pub fn get_mastery(
     })?
     .ok_or_else(|| AppError::NotFound(format!("mastery for concept {concept_id}")))?;
     Ok(v)
+}
+
+pub fn insert_chat_message(
+    db: &Db,
+    chapter_id: i64,
+    role: &str,
+    body: &str,
+    fsm_state: &str,
+    created_at: i64,
+) -> Result<i64, AppError> {
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO chat_messages (chapter_id, role, body, fsm_state, created_at) VALUES (?1,?2,?3,?4,?5)",
+            (chapter_id, role, body, fsm_state, created_at),
+        )?;
+        Ok(c.last_insert_rowid())
+    })
+}
+
+pub fn chat_history(db: &Db, chapter_id: i64) -> Result<Vec<ChatMessage>, AppError> {
+    let rows = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id, chapter_id, role, body, fsm_state, created_at FROM chat_messages WHERE chapter_id = ?1 ORDER BY id",
+        )?;
+        let mapped = stmt.query_map([chapter_id], |r| {
+            Ok(ChatMessage {
+                id: r.get(0)?,
+                chapter_id: r.get(1)?,
+                role: r.get(2)?,
+                body: r.get(3)?,
+                fsm_state: r.get(4)?,
+                created_at: r.get(5)?,
+            })
+        })?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    Ok(rows)
 }
 
 #[cfg(test)]

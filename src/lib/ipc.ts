@@ -130,3 +130,35 @@ export function getDue(now: number): Promise<ConceptProgress[]> {
 export function getStreak(today: string): Promise<number> {
   return invoke<number>("get_streak", { today });
 }
+
+export interface ChatMessage {
+  id: number;
+  chapterId: number;
+  role: string;
+  body: string;
+  fsmState: string;
+  createdAt: number;
+}
+
+export interface TutorTurnResult {
+  reply: string;
+  fsmState: string;
+  studentMsgId: number;
+  tutorMsgId: number;
+}
+
+export function getChatHistory(chapterId: number): Promise<ChatMessage[]> {
+  return invoke<ChatMessage[]>("get_chat_history", { chapterId });
+}
+
+export function tutorTurn(
+  chapterId: number,
+  studentMsg: string,
+  fsmState: string
+): Promise<TutorTurnResult> {
+  return invoke<TutorTurnResult>("tutor_turn", {
+    chapterId,
+    studentMsg,
+    fsmState,
+  });
+}

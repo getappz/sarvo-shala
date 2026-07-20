@@ -5,6 +5,7 @@ import Wizard from "./screens/Wizard";
 import Browse from "./screens/Browse";
 import Quiz from "./screens/Quiz";
 import Progress from "./screens/Progress";
+import Tutor from "./screens/Tutor";
 
 type Tab = "browse" | "tutor" | "quiz" | "progress";
 
@@ -70,13 +71,12 @@ export default function App() {
 
         {tab === "progress" && <Progress chapter={selectedChapter} t={t} />}
 
-        {tab === "tutor" && (
-          <p>
-            {selectedChapter
-              ? `${t(tab)} — ${selectedChapter.title} (${t("loading")})`
-              : t("browse")}
-          </p>
-        )}
+        {tab === "tutor" &&
+          (selectedChapter ? (
+            <Tutor chapter={selectedChapter} t={t} />
+          ) : (
+            <p>{t("browse")}</p>
+          ))}
       </main>
     </div>
   );

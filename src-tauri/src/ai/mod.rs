@@ -1,6 +1,7 @@
 use crate::error::AppError;
 
 /// A generation request handed to an [`InferenceBackend`].
+#[derive(Clone)]
 pub struct GenRequest {
     pub system: String,
     pub user: String,
@@ -36,5 +37,6 @@ pub struct Snippet {
 pub trait SpeechEngine: Send + Sync {}
 
 pub mod classify;
+pub mod mock;
 pub mod retriever;
 pub mod socratic;

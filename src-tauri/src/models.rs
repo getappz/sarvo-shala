@@ -109,3 +109,12 @@ pub struct ChatMessage {
     pub fsm_state: String,
     pub created_at: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TutorTurnResult {
+    pub reply: String,
+    pub fsm_state: String,
+    pub student_msg_id: i64,
+    pub tutor_msg_id: i64,
+}
