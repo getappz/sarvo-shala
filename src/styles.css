@@ -19,39 +19,6 @@ body,
   height: 100%;
 }
 
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-}
-
-.tab {
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  border-radius: 6px;
-}
-
-.tab.active {
-  background: #2563eb;
-  color: #fff;
-}
-
-.content {
-  flex: 1;
-  overflow: auto;
-  padding: 16px;
-}
-
 .wizard {
   max-width: 480px;
   margin: 8vh auto;

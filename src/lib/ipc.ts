@@ -19,6 +19,10 @@ export function completeWizard(
   return invoke<Settings>("complete_wizard", { language, grade, board });
 }
 
+export function updateLanguage(language: string): Promise<Settings> {
+  return invoke<Settings>("update_language", { language });
+}
+
 export interface Subject {
   id: number;
   grade: number;
