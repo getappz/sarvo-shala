@@ -1,0 +1,22 @@
+@theme {
+  /* brand */
+  --color-primary: #1e4b6b;
+  --color-celebration: #f5a623; /* reserved for celebration moments only — see design spec §6 */
+
+  /* surfaces & text */
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+
+  /* mastery-grid scale: not-started -> mastered, single-hue ramp toward --color-primary */
+  --color-mastery-1: #e2e8f0;
+  --color-mastery-2: #a7d8e8;
+  --color-mastery-3: #4fa8c7;
+  --color-mastery-4: #1e4b6b;
+
+  /* typography: display (headers/celebration), sans (body/UI), devanagari (Hindi pairing) */
+  --font-display: "Space Grotesk Variable", sans-serif;
+  --font-sans: "Manrope Variable", sans-serif;
+  --font-devanagari: "Hind", sans-serif;
+}
