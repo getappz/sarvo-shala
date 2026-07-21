@@ -26,6 +26,12 @@ export default function App() {
       );
   }, []);
 
+  useEffect(() => {
+    if (settings) {
+      document.documentElement.lang = settings.language;
+    }
+  }, [settings]);
+
   if (!settings) return <p className="center">{t("loading")}</p>;
 
   if (!settings.onboarded) {

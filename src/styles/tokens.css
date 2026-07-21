@@ -20,3 +20,7 @@
   --font-sans: "Manrope Variable", sans-serif;
   --font-devanagari: "Hind", sans-serif;
 }
+
+:lang(hi) {
+  font-family: var(--font-devanagari);
+}
