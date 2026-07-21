@@ -9,6 +9,7 @@ import {
   type QuizResult,
   type Chapter,
 } from "../lib/ipc";
+import Button from "../components/ui/Button";
 
 type Phase = "intro" | "question" | "done";
 
@@ -92,50 +93,54 @@ export default function Quiz({
 
   if (phase === "intro") {
     return (
-      <div className="quiz">
-        <h3>{chapter.title}</h3>
-        <button className="primary" onClick={begin}>
-          {t("startQuiz")}
-        </button>
-        {error && <p className="error">{error}</p>}
+      <div className="max-w-xl mx-auto">
+        <h3 className="font-display text-lg mb-3">{chapter.title}</h3>
+        <Button onClick={begin}>{t("startQuiz")}</Button>
+        {error && <p className="error mt-2">{error}</p>}
       </div>
     );
   }
 
   if (phase === "done" && result) {
     return (
-      <div className="quiz">
-        <h3>{t("score")}: {Math.round(result.score)}%</h3>
-        <p>
+      <div className="max-w-xl mx-auto">
+        <h3 className="font-display text-lg mb-2">
+          {t("score")}: {Math.round(result.score)}%
+        </h3>
+        <p className="text-sm text-ink-muted mb-3">
           {result.correct} / {result.total}
         </p>
-        <ul className="review-list">
+        <ul className="list-none p-0 flex flex-col gap-1.5 mb-4">
           {result.perQuestion.map((r) => (
-            <li key={r.questionId} className={r.correct ? "ok" : "bad"}>
+            <li
+              key={r.questionId}
+              className={r.correct ? "text-green-800" : "text-red-800"}
+            >
               {r.correct ? "✓" : "✗"} {r.explanation}
             </li>
           ))}
         </ul>
-        <button className="primary" onClick={() => setPhase("intro")}>
-          {t("finish")}
-        </button>
+        <Button onClick={() => setPhase("intro")}>{t("finish")}</Button>
       </div>
     );
   }
 
   const q = questions[index];
   return (
-    <div className="quiz">
-      <div className="quiz-progress">
+    <div className="max-w-xl mx-auto">
+      <div className="text-xs text-ink-muted mb-2">
         {index + 1} / {questions.length}
       </div>
-      <h3>{q.prompt}</h3>
-      <div className="options">
+      <h3 className="font-display text-lg mb-3">{q.prompt}</h3>
+      <div className="flex flex-col gap-2 my-3">
         {q.options.map((o) => {
-          let cls = "option";
+          let cls =
+            "text-left px-3 py-2.5 rounded-lg border border-border bg-surface";
           if (feedback) {
-            if (o.id === feedback.review.correctOptionId) cls += " correct";
-            else if (o.id === chosen) cls += " wrong";
+            if (o.id === feedback.review.correctOptionId)
+              cls = "text-left px-3 py-2.5 rounded-lg border border-green-600 bg-green-50";
+            else if (o.id === chosen)
+              cls = "text-left px-3 py-2.5 rounded-lg border border-red-600 bg-red-50";
           }
           return (
             <button
@@ -151,7 +156,11 @@ export default function Quiz({
       </div>
       {feedback && (
         <div
-          className={feedback.review.correct ? "explain ok" : "explain bad"}
+          className={
+            feedback.review.correct
+              ? "px-3 py-2.5 rounded-lg mb-3 bg-green-50 text-green-800"
+              : "px-3 py-2.5 rounded-lg mb-3 bg-red-50 text-red-800"
+          }
           role="status"
           aria-live="polite"
         >
@@ -160,11 +169,11 @@ export default function Quiz({
             : `${feedback.review.explanation} ${feedback.review.trap}`}
         </div>
       )}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error mb-3">{error}</p>}
       {feedback && (
-        <button className="primary" onClick={next}>
+        <Button onClick={next}>
           {index + 1 < questions.length ? t("next") : t("finish")}
-        </button>
+        </Button>
       )}
     </div>
   );
