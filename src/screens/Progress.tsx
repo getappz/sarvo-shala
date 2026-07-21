@@ -49,36 +49,41 @@ export default function Progress({
   }, [chapter]);
 
   return (
-    <div className="progress">
-      <div className="streak">
-        🔥 {streak}
-      </div>
+    <div className="max-w-2xl mx-auto">
+      <div className="font-display text-2xl font-semibold mb-4">🔥 {streak}</div>
 
-      <h3>{t("mastery")}</h3>
-      <div className="mastery-list">
+      <h3 className="font-display text-lg mb-2">{t("mastery")}</h3>
+      <div className="flex flex-col gap-1.5 mb-6">
         {progress.map((c) => (
-          <div key={c.conceptId} className="mastery-row">
-            <span className="mastery-name">{c.name}</span>
-            <div className="bar">
+          <div
+            key={c.conceptId}
+            className="grid grid-cols-[160px_1fr_44px] items-center gap-2"
+          >
+            <span className="text-sm text-ink">{c.name}</span>
+            <div className="bg-border rounded-md h-2.5 overflow-hidden">
               <div
-                className="bar-fill"
+                className="bg-primary h-full"
                 style={{ width: `${Math.round(c.pKnown * 100)}%` }}
               />
             </div>
-            <span className="mastery-pct">{Math.round(c.pKnown * 100)}%</span>
+            <span className="text-xs text-ink-muted text-right">
+              {Math.round(c.pKnown * 100)}%
+            </span>
           </div>
         ))}
       </div>
 
-      <h3>{t("dueForReview")}</h3>
+      <h3 className="font-display text-lg mb-2">{t("dueForReview")}</h3>
       {loading ? (
-        <p className="muted">{t("loading")}</p>
+        <p className="text-ink-muted">{t("loading")}</p>
       ) : due.length === 0 ? (
-        <p className="muted">{t("noDue")}</p>
+        <p className="text-ink-muted">{t("noDue")}</p>
       ) : (
-        <ul className="due-list">
+        <ul className="pl-4">
           {due.map((c) => (
-            <li key={c.conceptId}>{c.name}</li>
+            <li key={c.conceptId} className="text-ink">
+              {c.name}
+            </li>
           ))}
         </ul>
       )}
