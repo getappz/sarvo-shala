@@ -51,7 +51,7 @@ export default function App() {
   }
 
   return (
-    <div className="app min-h-full">
+    <div className="h-full">
       <AppShell tab={tab} onTabChange={setTab} t={t}>
         {tab === "home" && (
           <Home t={t} onGoToSubjects={() => setTab("subjects")} />
