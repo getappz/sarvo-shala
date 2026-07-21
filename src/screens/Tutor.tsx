@@ -6,6 +6,7 @@ import {
   type ChatMessage,
 } from "../lib/ipc";
 import type { Chapter } from "../lib/ipc";
+import Button from "../components/ui/Button";
 
 type TFn = (k: string) => string;
 
@@ -171,19 +172,29 @@ export default function Tutor({
   }
 
   return (
-    <div className="tutor">
-      <h2>
+    <div className="flex flex-col h-full max-w-2xl mx-auto">
+      <h2 className="font-display text-lg mb-1">
         {t("tutor")} — {chapter.titleHi || chapter.title}
       </h2>
-      <div className="fsm-badge">{stateLabel(fsm, t)}</div>
+      <div className="inline-block w-fit text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-3">
+        {stateLabel(fsm, t)}
+      </div>
 
-      <div className="chat" role="log" aria-live="polite">
+      <div
+        className="flex-1 overflow-auto flex flex-col gap-2.5 mb-3"
+        role="log"
+        aria-live="polite"
+      >
         {messages.map((m) => (
           <div
             key={m.id}
-            className={m.role === "student" ? "bubble student" : "bubble tutor"}
+            className={
+              m.role === "student"
+                ? "max-w-[75%] self-end rounded-xl px-3.5 py-2.5 text-sm bg-primary text-white"
+                : "max-w-[75%] self-start rounded-xl px-3.5 py-2.5 text-sm bg-border/60 text-ink"
+            }
           >
-            <span className="who">
+            <span className="block text-[11px] font-semibold mb-0.5 opacity-70">
               {m.role === "student" ? t("you") : t("tutor")}
             </span>
             <p>{m.body}</p>
@@ -192,7 +203,7 @@ export default function Tutor({
       </div>
 
       <form
-        className="composer"
+        className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           doSend(input);
@@ -203,10 +214,11 @@ export default function Tutor({
           onChange={(e) => setInput(e.target.value)}
           placeholder={t("tutorPlaceholder")}
           disabled={busy}
+          className="flex-1 border border-border rounded-lg px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
-        <button type="submit" disabled={busy || input.trim().length === 0}>
+        <Button type="submit" disabled={busy || input.trim().length === 0}>
           {t("send")}
-        </button>
+        </Button>
       </form>
     </div>
   );
