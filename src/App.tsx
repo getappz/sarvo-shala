@@ -41,7 +41,7 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app min-h-full">
       <header className="tabs">
         {tabs.map((tb) => (
           <button
