@@ -52,6 +52,8 @@ const en: Dict = {
   taraContent: "Tara: content",
   taraCelebrating: "Tara: celebrating with you",
   taraWelcoming: "Tara: welcoming you",
+  continue: "Continue",
+  day1StreakTitle: "Day 1 — you're on a streak!",
 };
 
 const hi: Dict = {
@@ -104,6 +106,8 @@ const hi: Dict = {
   taraContent: "तारा: संतुष्ट है",
   taraCelebrating: "तारा: आपके साथ जश्न मना रही है",
   taraWelcoming: "तारा: आपका स्वागत कर रही है",
+  continue: "आगे बढ़ें",
+  day1StreakTitle: "दिन 1 — आपकी लकीर शुरू हो गई!",
 };
 
 export function t(key: string, lang: Lang): string {
