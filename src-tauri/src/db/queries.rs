@@ -943,7 +943,11 @@ mod tests {
             "chapter 1 should be marked mastered once all its concepts are: {:?}",
             before.badges
         );
-        assert!(before.xp >= 15, "expected mastery XP for 3 concepts, got {}", before.xp);
+        assert!(
+            before.xp >= 15,
+            "expected mastery XP for 3 concepts, got {}",
+            before.xp
+        );
 
         // A later spaced-repetition review question on concept 1 comes back
         // wrong: BKT lowers its p_known well below the mastered threshold.
@@ -978,7 +982,10 @@ mod tests {
             "a merely-practiced concept must not complete its chapter: {:?}",
             g.badges
         );
-        assert_eq!(g.xp, 5, "one practiced-or-above concept should award the +5 mastery bonus once");
+        assert_eq!(
+            g.xp, 5,
+            "one practiced-or-above concept should award the +5 mastery bonus once"
+        );
         let _ = std::fs::remove_file(&p);
     }
 }

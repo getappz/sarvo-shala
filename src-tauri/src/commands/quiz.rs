@@ -334,7 +334,11 @@ mod tests {
         // into "practiced" after just one correct answer, adding +5 -- this
         // test only needs to prove the grading path actually feeds
         // get_gamification, not pin the exact BKT curve.
-        assert!(g.xp >= 20, "two correct answers should award at least 10 XP each: {:?}", g);
+        assert!(
+            g.xp >= 20,
+            "two correct answers should award at least 10 XP each: {:?}",
+            g
+        );
         let _ = std::fs::remove_file(&p);
     }
 }
