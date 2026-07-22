@@ -57,7 +57,7 @@ export default function Progress({
         {progress.map((c) => (
           <div
             key={c.conceptId}
-            className="grid grid-cols-[160px_1fr_44px] items-center gap-2"
+            className="grid grid-cols-[minmax(100px,160px)_minmax(0,1fr)_44px] items-center gap-2"
           >
             <span className="text-sm text-ink">{c.name}</span>
             <div className="bg-border rounded-md h-2.5 overflow-hidden">
