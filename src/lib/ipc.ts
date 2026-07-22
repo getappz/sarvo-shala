@@ -147,6 +147,18 @@ export function getStreak(today: string): Promise<number> {
   return invoke<number>("get_streak", { today });
 }
 
+export interface GamificationSummary {
+  xp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
+  badges: string[];
+}
+
+export function getGamification(today: string): Promise<GamificationSummary> {
+  return invoke<GamificationSummary>("get_gamification", { today });
+}
+
 export interface ChatMessage {
   id: number;
   chapterId: number;

@@ -1,0 +1,41 @@
+.mastery-cell {
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  position: relative;
+  min-width: 60px;
+}
+
+.mastery-cell--not_started {
+  background-color: transparent !important;
+  border: 2px solid var(--color-mastery-1);
+}
+
+.mastery-cell--learning {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.5) 4px,
+    rgba(255, 255, 255, 0.5) 8px
+  );
+}
+
+.mastery-cell--practiced {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.6) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 8px 8px;
+}
+
+.mastery-cell--mastered {
+  background-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mastery-cell {
+    transition: none;
+  }
+}

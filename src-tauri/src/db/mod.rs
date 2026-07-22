@@ -7,7 +7,7 @@ pub mod seed;
 
 /// Current schema version. Bump when `schema.sql` gains new tables/indexes so
 /// existing databases are migrated via [`MIGRATION_SQL`] instead of re-seeded.
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 /// Applied to any database whose `user_version` is below [`SCHEMA_VERSION`].
 /// Uses `IF NOT EXISTS` so it is safe to re-run and to run after a full
@@ -24,6 +24,7 @@ const MIGRATION_SQL: &str = "
   CREATE INDEX IF NOT EXISTS ix_question_options_question ON question_options(question_id);
   CREATE INDEX IF NOT EXISTS ix_quiz_answers_session ON quiz_answers(session_id);
   CREATE INDEX IF NOT EXISTS ix_chat_messages_chapter ON chat_messages(chapter_id);
+  CREATE INDEX IF NOT EXISTS ix_concept_mastery_concept ON concept_mastery(concept_id);
 ";
 
 pub struct Db {

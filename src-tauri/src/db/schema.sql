@@ -130,3 +130,4 @@ CREATE INDEX IF NOT EXISTS ix_questions_concept ON questions(concept_id);
 CREATE INDEX IF NOT EXISTS ix_question_options_question ON question_options(question_id);
 CREATE INDEX IF NOT EXISTS ix_quiz_answers_session ON quiz_answers(session_id);
 CREATE INDEX IF NOT EXISTS ix_chat_messages_chapter ON chat_messages(chapter_id);
+CREATE INDEX IF NOT EXISTS ix_concept_mastery_concept ON concept_mastery(concept_id);

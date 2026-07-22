@@ -29,6 +29,14 @@ pub fn get_streak(state: State<Db>, today: String) -> Result<i64, AppError> {
     queries::get_streak(&state, &today)
 }
 
+#[tauri::command]
+pub fn get_gamification(
+    state: State<Db>,
+    today: String,
+) -> Result<crate::models::GamificationSummary, AppError> {
+    queries::get_gamification(&state, &today)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::queries;

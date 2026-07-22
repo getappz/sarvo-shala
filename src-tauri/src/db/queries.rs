@@ -656,6 +656,75 @@ pub fn get_mastery(db: &Db, concept_id: i64) -> Result<(f64, i64, i64), AppError
     Ok(v)
 }
 
+pub fn get_gamification(db: &Db, today: &str) -> Result<crate::models::GamificationSummary, AppError> {
+    let xp_from_answers: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT COALESCE(SUM(CASE WHEN correct = 1 THEN 10 ELSE 0 END), 0) FROM quiz_answers",
+            [],
+            |r| r.get(0),
+        )
+    })?;
+
+    let xp_from_mastery: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT COALESCE(SUM(CASE WHEN p_known >= 0.5 THEN 5 ELSE 0 END), 0)
+             FROM concept_mastery WHERE attempts > 0",
+            [],
+            |r| r.get(0),
+        )
+    })?;
+
+    let xp = xp_from_answers + xp_from_mastery;
+    let level = xp / 100 + 1;
+    let xp_into_level = xp % 100;
+    let xp_for_next_level: i64 = 100;
+
+    let streak = get_streak(db, today)?;
+    let mut badges: Vec<String> = Vec::new();
+    if streak >= 7 {
+        badges.push("streak_7".to_string());
+    }
+    if streak >= 30 {
+        badges.push("streak_30".to_string());
+    }
+
+    let chapter_ids: Vec<i64> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT id FROM chapters ORDER BY id")?;
+        let mapped = stmt.query_map([], |r| r.get::<_, i64>(0))?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+
+    for ch_id in chapter_ids {
+        let all_mastered: bool = db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT COALESCE(m.p_known, 0.2), COALESCE(m.attempts, 0)
+                 FROM concepts c
+                 LEFT JOIN concept_mastery m ON m.concept_id = c.id
+                 WHERE c.chapter_id = ?1
+                 ORDER BY c.id"
+            )?;
+            let mapped = stmt.query_map([ch_id], |r| {
+                let p: f64 = r.get(0)?;
+                let a: i64 = r.get(1)?;
+                Ok((a, p))
+            })?;
+            let rows: Vec<(i64, f64)> = mapped.collect::<rusqlite::Result<Vec<_>>>()?;
+            Ok::<_, rusqlite::Error>(rows.iter().all(|(a, p)| *a > 0 && *p >= 0.85))
+        })?;
+        if all_mastered {
+            badges.push(format!("chapter_mastered:{ch_id}"));
+        }
+    }
+
+    Ok(crate::models::GamificationSummary {
+        xp,
+        level,
+        xp_into_level,
+        xp_for_next_level,
+        badges,
+    })
+}
+
 pub fn insert_chat_message(
     db: &Db,
     chapter_id: i64,

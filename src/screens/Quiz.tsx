@@ -1,21 +1,39 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   startQuiz,
   submitAnswer,
   finishQuiz,
+  getGamification,
   localDayString,
   type Question,
   type AnswerReview,
   type QuizResult,
   type Chapter,
+  type GamificationSummary,
 } from "../lib/ipc";
 import Button from "../components/ui/Button";
+import Tara from "../components/Tara";
 
 type Phase = "intro" | "question" | "done";
 
 interface Feedback {
   review: AnswerReview;
   chosen: number;
+}
+
+function todayString(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function badgeLabel(key: string, t: (k: string) => string): string {
+  if (key.startsWith("chapter_mastered:")) return t("badgeChapterMastered");
+  if (key === "streak_7") return t("badgeStreak7");
+  if (key === "streak_30") return t("badgeStreak30");
+  return key;
 }
 
 export default function Quiz({
@@ -34,6 +52,9 @@ export default function Quiz({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [celebration, setCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState("");
+  const initialGamification = useRef<GamificationSummary | null>(null);
 
   async function begin() {
     setError(null);
@@ -45,6 +66,9 @@ export default function Quiz({
       setChosen(null);
       setFeedback(null);
       setPhase("question");
+      getGamification(todayString())
+        .then((g) => { initialGamification.current = g; })
+        .catch(() => {});
     } catch {
       setError(t("errorGeneric"));
     }
@@ -86,9 +110,32 @@ export default function Quiz({
       const r = await finishQuiz(sessionId);
       setResult(r);
       setPhase("done");
+
+      const prev = initialGamification.current;
+      const cur = await getGamification(todayString());
+      if (prev) {
+        if (cur.level > prev.level) {
+          setCelebration(true);
+          setCelebrationMessage(t("levelUpCelebration"));
+        } else {
+          const newBadges = cur.badges.filter((b) => !prev.badges.includes(b));
+          if (newBadges.length > 0) {
+            setCelebration(true);
+            setCelebrationMessage(
+              newBadges.length === 1
+                ? `${t("levelUpCelebration")} ${badgeLabel(newBadges[0], t)}`
+                : t("levelUpCelebration")
+            );
+          }
+        }
+      }
     } catch {
       setError(t("errorGeneric"));
     }
+  }
+
+  function dismissCelebration() {
+    setCelebration(false);
   }
 
   if (phase === "intro") {
@@ -104,6 +151,25 @@ export default function Quiz({
   if (phase === "done" && result) {
     return (
       <div className="max-w-xl mx-auto">
+        {celebration && (
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-celebration/10 border border-celebration mb-4"
+            role="status"
+            aria-live="polite"
+          >
+            <Tara state="celebrating" size={48} t={t} />
+            <span className="font-display text-lg text-primary">
+              {celebrationMessage}
+            </span>
+            <button
+              onClick={dismissCelebration}
+              className="ml-auto text-ink-muted hover:text-ink text-lg leading-none"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <h3 className="font-display text-lg mb-2">
           {t("score")}: {Math.round(result.score)}%
         </h3>
