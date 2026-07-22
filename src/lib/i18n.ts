@@ -44,6 +44,14 @@ const en: Dict = {
   stateConfront: "Confront",
   stateScaffold: "Scaffold",
   stateConfirm: "Confirm",
+  taraCurious: "Tara: curious what you think",
+  taraAttentive: "Tara: paying attention",
+  taraEncouraging: "Tara: encouraging you",
+  taraSupportive: "Tara: here to help",
+  taraPleased: "Tara: pleased with that",
+  taraContent: "Tara: content",
+  taraCelebrating: "Tara: celebrating with you",
+  taraWelcoming: "Tara: welcoming you",
 };
 
 const hi: Dict = {
@@ -88,6 +96,14 @@ const hi: Dict = {
   stateConfront: "सामना",
   stateScaffold: "सहायता",
   stateConfirm: "पुष्टि",
+  taraCurious: "तारा: उत्सुक है",
+  taraAttentive: "तारा: ध्यान दे रही है",
+  taraEncouraging: "तारा: प्रोत्साहित कर रही है",
+  taraSupportive: "तारा: मदद के लिए यहाँ है",
+  taraPleased: "तारा: प्रसन्न है",
+  taraContent: "तारा: संतुष्ट है",
+  taraCelebrating: "तारा: आपके साथ जश्न मना रही है",
+  taraWelcoming: "तारा: आपका स्वागत कर रही है",
 };
 
 export function t(key: string, lang: Lang): string {

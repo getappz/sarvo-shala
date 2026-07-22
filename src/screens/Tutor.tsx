@@ -7,6 +7,7 @@ import {
 } from "../lib/ipc";
 import type { Chapter } from "../lib/ipc";
 import Button from "../components/ui/Button";
+import Tara, { type TaraState } from "../components/Tara";
 
 type TFn = (k: string) => string;
 
@@ -23,6 +24,22 @@ const STATE_KEY: Record<string, string> = {
 const baseState = (fsm: string) => fsm.split(":")[0];
 const stateLabel = (fsm: string, t: TFn) =>
   t(STATE_KEY[baseState(fsm)] ?? "stateProbe");
+
+const TARA_FOR_FSM: Record<string, TaraState> = {
+  Probe: "curious",
+  Clarify: "attentive",
+  Confront: "encouraging",
+  Scaffold: "supportive",
+  Confirm: "pleased",
+};
+const taraStateFor = (fsm: string): TaraState =>
+  TARA_FOR_FSM[baseState(fsm)] ?? "curious";
+// Scaffold turns are persisted as "Scaffold:N"; N >= 2 means the student is
+// stuck across repeated turns, so Tara's supportive state gets emphasized.
+const scaffoldEmphasized = (fsm: string) => {
+  const [state, turns] = fsm.split(":");
+  return state === "Scaffold" && Number(turns ?? 0) >= 2;
+};
 
 export default function Tutor({
   chapter,
@@ -173,9 +190,17 @@ export default function Tutor({
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">
-      <h2 className="font-display text-lg mb-1">
-        {t("tutor")} — {chapter.titleHi || chapter.title}
-      </h2>
+      <div className="flex items-center gap-2 mb-1">
+        <Tara
+          state={taraStateFor(fsm)}
+          emphasized={scaffoldEmphasized(fsm)}
+          size={32}
+          t={t}
+        />
+        <h2 className="font-display text-lg">
+          {t("tutor")} — {chapter.titleHi || chapter.title}
+        </h2>
+      </div>
       <div className="inline-block w-fit text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-3">
         {stateLabel(fsm, t)}
       </div>

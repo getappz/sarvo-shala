@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { getStreak, getDue, localDayString, type ConceptProgress } from "../lib/ipc";
 import Button from "../components/ui/Button";
+import Tara, { type TaraState } from "../components/Tara";
+
+// Derived from the data already on screen, not a tracked "freeze protection"
+// signal from the backend: an active streak with something due today reads
+// as "attentive" (there's something to do to keep it going); otherwise she's
+// "content" — including a broken/fresh-start streak, since re-entry is
+// neutral, never a sad state (see the mascot spec's anti-guilt-pattern rule).
+function homeIdleState(streak: number, dueCount: number): TaraState {
+  if (streak > 0 && dueCount > 0) return "attentive";
+  return "content";
+}
 
 export default function Home({
   t,
@@ -27,8 +38,11 @@ export default function Home({
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="font-display text-3xl text-celebration mb-1">
-        🔥 {streak}
+      <div className="flex items-center gap-2 mb-1">
+        <Tara state={homeIdleState(streak, due.length)} size={40} />
+        <span className="font-display text-3xl text-celebration">
+          🔥 {streak}
+        </span>
       </div>
       <p className="text-ink-muted text-sm mb-6">{t("streakDays")}</p>
 
