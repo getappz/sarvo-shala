@@ -118,3 +118,13 @@ pub struct TutorTurnResult {
     pub student_msg_id: i64,
     pub tutor_msg_id: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GamificationSummary {
+    pub xp: i64,
+    pub level: i64,
+    pub xp_into_level: i64,
+    pub xp_for_next_level: i64,
+    pub badges: Vec<String>,
+}

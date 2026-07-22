@@ -149,6 +149,11 @@ pub(crate) fn submit_answer_impl(
     // IST, where a UTC day string would mis-attribute pre-dawn study).
     queries::upsert_study_day(db, day)?;
 
+    // Anchors any newly-earned mastery milestone/badge to this moment,
+    // derived from the mastery update just above -- not re-derived later
+    // from a live snapshot that could regress (see queries::record_gamification_events).
+    queries::record_gamification_events(db, concept_id, day, now)?;
+
     Ok(review)
 }
 
@@ -310,6 +315,30 @@ mod tests {
         let (_, attempts, _) = queries::get_mastery(&db, 1).unwrap();
         assert_eq!(attempts, 1, "mastery must only be updated by the winner");
 
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn submit_answer_feeds_gamification_xp() {
+        let (db, p) = seeded();
+        let session = queries::insert_quiz_session(&db, 1, 1_000_000).unwrap();
+        let c1 = queries::correct_option(&db, 1).unwrap();
+        let c2 = queries::correct_option(&db, 2).unwrap();
+
+        super::submit_answer_impl(&db, session, 1, c1, "2026-07-20").unwrap();
+        super::submit_answer_impl(&db, session, 2, c2, "2026-07-20").unwrap();
+
+        let g = queries::get_gamification(&db).unwrap();
+        // 10 XP per correct answer is the floor; BKT convergence (exercised
+        // separately in pedagogy::bkt's own tests) may also cross a concept
+        // into "practiced" after just one correct answer, adding +5 -- this
+        // test only needs to prove the grading path actually feeds
+        // get_gamification, not pin the exact BKT curve.
+        assert!(
+            g.xp >= 20,
+            "two correct answers should award at least 10 XP each: {:?}",
+            g
+        );
         let _ = std::fs::remove_file(&p);
     }
 }

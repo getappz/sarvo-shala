@@ -54,6 +54,16 @@ const en: Dict = {
   taraWelcoming: "Tara: welcoming you",
   continue: "Continue",
   day1StreakTitle: "Day 1 — you're on a streak!",
+  level: "Level",
+  xpToNextLevel: "to next level",
+  badgeChapterMastered: "Chapter Mastered",
+  badgeStreak7: "7-Day Streak",
+  badgeStreak30: "30-Day Streak",
+  masteryNotStarted: "Not started",
+  masteryLearning: "Learning",
+  masteryPracticed: "Practiced",
+  masteryMastered: "Mastered",
+  levelUpCelebration: "Level up! Great work!",
 };
 
 const hi: Dict = {
@@ -108,6 +118,16 @@ const hi: Dict = {
   taraWelcoming: "तारा: आपका स्वागत कर रही है",
   continue: "आगे बढ़ें",
   day1StreakTitle: "दिन 1 — आपकी लकीर शुरू हो गई!",
+  level: "स्तर",
+  xpToNextLevel: "अगले स्तर तक",
+  badgeChapterMastered: "अध्याय पूर्ण",
+  badgeStreak7: "7 दिन की शृंखला",
+  badgeStreak30: "30 दिन की शृंखला",
+  masteryNotStarted: "शुरू नहीं किया",
+  masteryLearning: "सीख रहे हैं",
+  masteryPracticed: "अभ्यास किया",
+  masteryMastered: "निपुण",
+  levelUpCelebration: "स्तर बढ़ा! बहुत बढ़िया!",
 };
 
 export function t(key: string, lang: Lang): string {

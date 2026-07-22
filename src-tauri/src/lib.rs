@@ -38,6 +38,7 @@ pub fn run() {
             commands::progress::get_progress,
             commands::progress::get_due,
             commands::progress::get_streak,
+            commands::progress::get_gamification,
             commands::tutor::tutor_turn,
             commands::tutor::get_chat_history
         ])

@@ -656,6 +656,163 @@ pub fn get_mastery(db: &Db, concept_id: i64) -> Result<(f64, i64, i64), AppError
     Ok(v)
 }
 
+/// XP/level/badges, derived purely from data already written by the grading
+/// path -- never a live snapshot. The mastery-XP term counts concepts that
+/// have *ever* earned a practiced-or-mastered milestone (`concept_mastery_milestones`,
+/// an append-only log) rather than concepts whose *current* p_known happens
+/// to clear the bar; badges are read from `earned_badges`, likewise
+/// append-only. Both are only ever written by [`record_gamification_events`],
+/// called from the grading path right after a mastery update -- so a later
+/// wrong review answer that lowers a concept's live p_known cannot make XP,
+/// level, or an earned badge disappear (see design spec §6's anti-guilt-pattern
+/// stance).
+pub fn get_gamification(db: &Db) -> Result<crate::models::GamificationSummary, AppError> {
+    let xp_from_answers: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT COALESCE(SUM(CASE WHEN correct = 1 THEN 10 ELSE 0 END), 0) FROM quiz_answers",
+            [],
+            |r| r.get(0),
+        )
+    })?;
+
+    let milestoned_concepts: i64 = db.with(|c| {
+        c.query_row(
+            "SELECT COUNT(DISTINCT concept_id) FROM concept_mastery_milestones",
+            [],
+            |r| r.get(0),
+        )
+    })?;
+    let xp_from_mastery = milestoned_concepts * 5;
+
+    let xp = xp_from_answers + xp_from_mastery;
+    let level = xp / 100 + 1;
+    let xp_into_level = xp % 100;
+    let xp_for_next_level: i64 = 100;
+
+    let badges: Vec<String> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT badge_id FROM earned_badges ORDER BY earned_at")?;
+        let mapped = stmt.query_map([], |r| r.get::<_, String>(0))?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+
+    Ok(crate::models::GamificationSummary {
+        xp,
+        level,
+        xp_into_level,
+        xp_for_next_level,
+        badges,
+    })
+}
+
+/// Permanently record a concept crossing into `level` for the first time
+/// (`practiced` or `mastered`). Idempotent: re-recording an already-earned
+/// level is a no-op, and there is deliberately no corresponding "unearn" --
+/// this table is append-only so a later mastery dip never revokes it.
+pub fn record_mastery_milestone_if_new(
+    db: &Db,
+    concept_id: i64,
+    level: &str,
+    at: i64,
+) -> Result<bool, AppError> {
+    let changed = db.with(|c| {
+        c.execute(
+            "INSERT OR IGNORE INTO concept_mastery_milestones (concept_id, level, earned_at)
+             VALUES (?1, ?2, ?3)",
+            (concept_id, level, at),
+        )
+    })?;
+    Ok(changed > 0)
+}
+
+/// Permanently record a badge as earned. Same append-only, idempotent
+/// contract as [`record_mastery_milestone_if_new`].
+pub fn record_badge_if_new(db: &Db, badge_id: &str, at: i64) -> Result<bool, AppError> {
+    let changed = db.with(|c| {
+        c.execute(
+            "INSERT OR IGNORE INTO earned_badges (badge_id, earned_at) VALUES (?1, ?2)",
+            (badge_id, at),
+        )
+    })?;
+    Ok(changed > 0)
+}
+
+pub fn chapter_id_for_concept(db: &Db, concept_id: i64) -> Result<i64, AppError> {
+    let v: i64 = db
+        .with(|c| {
+            c.query_row(
+                "SELECT chapter_id FROM concepts WHERE id = ?1",
+                [concept_id],
+                |r| r.get(0),
+            )
+            .optional()
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("concept {concept_id}")))?;
+    Ok(v)
+}
+
+/// A chapter counts as fully mastered only once it has at least one concept
+/// and every concept in it has *ever* earned the `mastered` milestone. The
+/// `is_empty` guard matters: `.all()` over an empty iterator is vacuously
+/// true, so without it a chapter with zero seeded concepts would award the
+/// badge to a student who has touched nothing in it.
+pub fn chapter_fully_mastered(db: &Db, chapter_id: i64) -> Result<bool, AppError> {
+    let concept_ids = concept_ids_for_chapter(db, chapter_id)?;
+    if concept_ids.is_empty() {
+        return Ok(false);
+    }
+    for cid in &concept_ids {
+        let mastered: bool = db.with(|c| {
+            c.query_row(
+                "SELECT 1 FROM concept_mastery_milestones WHERE concept_id = ?1 AND level = 'mastered'",
+                [cid],
+                |_| Ok(()),
+            )
+            .optional()
+            .map(|v| v.is_some())
+        })?;
+        if !mastered {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// Called from the grading path (`submit_answer_impl`) right after a
+/// concept's mastery has just been updated -- anchors milestones/badges to
+/// the moment they were actually earned instead of re-deriving them from a
+/// live snapshot that can regress.
+pub fn record_gamification_events(
+    db: &Db,
+    concept_id: i64,
+    day: &str,
+    at: i64,
+) -> Result<(), AppError> {
+    use crate::pedagogy::mastery_level::{level_for, MasteryLevel};
+
+    let (p_known, attempts, _correct) = get_mastery(db, concept_id)?;
+    let level = level_for(attempts, p_known);
+
+    if matches!(level, MasteryLevel::Practiced | MasteryLevel::Mastered) {
+        record_mastery_milestone_if_new(db, concept_id, "practiced", at)?;
+    }
+    if level == MasteryLevel::Mastered {
+        record_mastery_milestone_if_new(db, concept_id, "mastered", at)?;
+        let chapter_id = chapter_id_for_concept(db, concept_id)?;
+        if chapter_fully_mastered(db, chapter_id)? {
+            record_badge_if_new(db, &format!("chapter_mastered:{chapter_id}"), at)?;
+        }
+    }
+
+    let streak = get_streak(db, day)?;
+    if streak >= 7 {
+        record_badge_if_new(db, "streak_7", at)?;
+    }
+    if streak >= 30 {
+        record_badge_if_new(db, "streak_30", at)?;
+    }
+    Ok(())
+}
+
 pub fn insert_chat_message(
     db: &Db,
     chapter_id: i64,
@@ -746,6 +903,89 @@ mod tests {
             })
             .unwrap();
         assert_eq!(count, 1, "only one row should ever be inserted");
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn chapter_fully_mastered_is_false_for_a_chapter_with_no_concepts() {
+        let (db, p) = temp_db();
+        crate::db::seed::seed_if_empty(&db).unwrap();
+        // Insert a chapter with zero concepts -- `.all()` over an empty
+        // iterator is vacuously true, which is exactly the bug this guards
+        // against: an untouched, content-less chapter must never register
+        // as "mastered".
+        db.with(|c| {
+            c.execute(
+                "INSERT INTO chapters (id, subject_id, ord, title) VALUES (99, 1, 99, 'Empty')",
+                [],
+            )
+        })
+        .unwrap();
+        assert!(!chapter_fully_mastered(&db, 99).unwrap());
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn badges_and_mastery_xp_survive_a_later_mastery_regression() {
+        let (db, p) = temp_db();
+        crate::db::seed::seed_if_empty(&db).unwrap();
+
+        // Concepts 1, 2, 3 are the whole of chapter 1. Master all three,
+        // recording gamification events the same way the grading path does.
+        for cid in [1, 2, 3] {
+            update_mastery(&db, cid, 0.9, 5, 5, 1000).unwrap();
+            record_gamification_events(&db, cid, "2026-07-20", 1000).unwrap();
+        }
+
+        let before = get_gamification(&db).unwrap();
+        assert!(
+            before.badges.contains(&"chapter_mastered:1".to_string()),
+            "chapter 1 should be marked mastered once all its concepts are: {:?}",
+            before.badges
+        );
+        assert!(
+            before.xp >= 15,
+            "expected mastery XP for 3 concepts, got {}",
+            before.xp
+        );
+
+        // A later spaced-repetition review question on concept 1 comes back
+        // wrong: BKT lowers its p_known well below the mastered threshold.
+        update_mastery(&db, 1, 0.3, 6, 5, 2000).unwrap();
+        record_gamification_events(&db, 1, "2026-07-20", 2000).unwrap();
+
+        let after = get_gamification(&db).unwrap();
+        assert!(
+            after.badges.contains(&"chapter_mastered:1".to_string()),
+            "an earned badge must not disappear because of a later wrong review answer: {:?}",
+            after.badges
+        );
+        assert_eq!(
+            after.xp, before.xp,
+            "XP must not regress from a live mastery dip once a milestone is earned"
+        );
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn only_mastered_concepts_earn_the_mastered_milestone() {
+        let (db, p) = temp_db();
+        crate::db::seed::seed_if_empty(&db).unwrap();
+
+        // p_known 0.6 is "practiced", not "mastered" (see mastery_level).
+        update_mastery(&db, 1, 0.6, 3, 2, 1000).unwrap();
+        record_gamification_events(&db, 1, "2026-07-20", 1000).unwrap();
+
+        let g = get_gamification(&db).unwrap();
+        assert!(
+            !g.badges.iter().any(|b| b.starts_with("chapter_mastered:")),
+            "a merely-practiced concept must not complete its chapter: {:?}",
+            g.badges
+        );
+        assert_eq!(
+            g.xp, 5,
+            "one practiced-or-above concept should award the +5 mastery bonus once"
+        );
         let _ = std::fs::remove_file(&p);
     }
 }

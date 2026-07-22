@@ -10,7 +10,7 @@ CARGO_TERM_COLOR = "always"
 
 [tasks.dev]
 description = "Run the Tauri desktop app in dev mode"
-run = "cargo tauri dev"
+run = "fuser -k 1420/tcp 2>/dev/null || true; cargo tauri dev"
 
 [tasks.build]
 description = "Build the release desktop bundle"
