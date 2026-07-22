@@ -32,9 +32,8 @@ pub fn get_streak(state: State<Db>, today: String) -> Result<i64, AppError> {
 #[tauri::command]
 pub fn get_gamification(
     state: State<Db>,
-    today: String,
 ) -> Result<crate::models::GamificationSummary, AppError> {
-    queries::get_gamification(&state, &today)
+    queries::get_gamification(&state)
 }
 
 #[cfg(test)]

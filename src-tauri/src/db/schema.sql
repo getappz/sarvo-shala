@@ -103,6 +103,24 @@ CREATE TABLE study_days (
   day TEXT PRIMARY KEY            -- 'YYYY-MM-DD' local date
 );
 
+-- Append-only fact log, same spirit as study_days: once a concept reaches a
+-- mastery tier it stays recorded here forever, even if its live p_known
+-- later drops from a wrong spaced-repetition review answer. Gamification
+-- XP/badges read from this table, never from a live p_known snapshot, so
+-- they cannot regress from ordinary review (see design spec §6).
+CREATE TABLE concept_mastery_milestones (
+  concept_id INTEGER NOT NULL REFERENCES concepts(id),
+  level TEXT NOT NULL CHECK (level IN ('practiced', 'mastered')),
+  earned_at INTEGER NOT NULL,
+  PRIMARY KEY (concept_id, level)
+);
+
+-- Same append-only permanence for badges: once earned, always shown.
+CREATE TABLE earned_badges (
+  badge_id TEXT PRIMARY KEY,
+  earned_at INTEGER NOT NULL
+);
+
 CREATE TABLE chat_messages (
   id INTEGER PRIMARY KEY,
   chapter_id INTEGER NOT NULL REFERENCES chapters(id),

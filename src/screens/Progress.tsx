@@ -9,6 +9,7 @@ import {
 } from "../lib/ipc";
 import type { Chapter } from "../lib/ipc";
 import MasteryGrid from "../components/MasteryGrid";
+import { badgeLabel } from "../lib/gamification";
 
 function todayString(): string {
   const d = new Date();
@@ -16,13 +17,6 @@ function todayString(): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function badgeLabel(key: string, t: (k: string) => string): string {
-  if (key.startsWith("chapter_mastered:")) return t("badgeChapterMastered");
-  if (key === "streak_7") return t("badgeStreak7");
-  if (key === "streak_30") return t("badgeStreak30");
-  return key;
 }
 
 export default function Progress({
@@ -57,7 +51,7 @@ export default function Progress({
       .then(setStreak)
       .catch(() => setStreak(0))
       .finally(done);
-    getGamification(todayString())
+    getGamification()
       .then(setGamification)
       .catch(() => setGamification(null))
       .finally(done);

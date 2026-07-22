@@ -13,27 +13,13 @@ import {
 } from "../lib/ipc";
 import Button from "../components/ui/Button";
 import Tara from "../components/Tara";
+import { badgeLabel } from "../lib/gamification";
 
 type Phase = "intro" | "question" | "done";
 
 interface Feedback {
   review: AnswerReview;
   chosen: number;
-}
-
-function todayString(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function badgeLabel(key: string, t: (k: string) => string): string {
-  if (key.startsWith("chapter_mastered:")) return t("badgeChapterMastered");
-  if (key === "streak_7") return t("badgeStreak7");
-  if (key === "streak_30") return t("badgeStreak30");
-  return key;
 }
 
 export default function Quiz({
@@ -66,7 +52,7 @@ export default function Quiz({
       setChosen(null);
       setFeedback(null);
       setPhase("question");
-      getGamification(todayString())
+      getGamification()
         .then((g) => { initialGamification.current = g; })
         .catch(() => {});
     } catch {
@@ -112,7 +98,7 @@ export default function Quiz({
       setPhase("done");
 
       const prev = initialGamification.current;
-      const cur = await getGamification(todayString());
+      const cur = await getGamification();
       if (prev) {
         if (cur.level > prev.level) {
           setCelebration(true);

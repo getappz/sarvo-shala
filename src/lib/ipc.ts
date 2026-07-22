@@ -155,8 +155,8 @@ export interface GamificationSummary {
   badges: string[];
 }
 
-export function getGamification(today: string): Promise<GamificationSummary> {
-  return invoke<GamificationSummary>("get_gamification", { today });
+export function getGamification(): Promise<GamificationSummary> {
+  return invoke<GamificationSummary>("get_gamification");
 }
 
 export interface ChatMessage {

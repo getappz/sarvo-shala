@@ -10,14 +10,13 @@ export default function MasteryGrid({
   t: (k: string) => string;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 mb-6" role="grid" aria-label={t("mastery")}>
+    <div className="flex flex-col gap-1.5 mb-6">
       {concepts.map((c) => {
         const ml = masteryLevel(c.attempts, c.pKnown);
         return (
           <div
             key={c.conceptId}
             className="grid grid-cols-[minmax(100px,160px)_minmax(0,1fr)_44px] items-center gap-2"
-            role="row"
           >
             <span className="text-sm text-ink">{c.name}</span>
             <MasteryCell level={ml} t={t} />
