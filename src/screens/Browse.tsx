@@ -74,7 +74,7 @@ export default function Browse({
         ))}
       </div>
 
-      <div className="grid grid-cols-[280px_1fr] gap-4">
+      <div className="grid grid-cols-[minmax(180px,280px)_minmax(0,1fr)] gap-4">
         <ul className="flex flex-col gap-2 list-none m-0 p-0">
           {chapters.map((c) => (
             <li key={c.id}>
