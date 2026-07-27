@@ -52,3 +52,8 @@ depends = ["check", "test", "lint", "fmt-check"]
 [tasks.clean-db]
 description = "Delete the local dev SQLite db (app_data_dir) for a fresh first-run test"
 run = "rm -f \"$HOME/.local/share/ai.sarvo.shala/sarvo-shala.db\"*"
+
+[tasks.pipeline-verify]
+description = "Full acceptance gate for the curriculum-pipeline crate"
+dir = "tools/curriculum-pipeline"
+run = "cargo fmt -- --check && cargo clippy -- -D warnings && cargo test"

@@ -54,3 +54,25 @@ jobs:
       - name: test
         run: cargo test
         working-directory: src-tauri
+
+  pipeline:
+    name: Pipeline (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: tools/curriculum-pipeline
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: fmt
+        run: cargo fmt --check
+        working-directory: tools/curriculum-pipeline
+      - name: clippy
+        run: cargo clippy -- -D warnings
+        working-directory: tools/curriculum-pipeline
+      - name: test
+        run: cargo test
+        working-directory: tools/curriculum-pipeline

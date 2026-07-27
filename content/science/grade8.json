@@ -1,0 +1,508 @@
+{
+  "subject": "Science",
+  "subject_hi": "विज्ञान",
+  "grade": 8,
+  "chapters": [
+    {
+      "id": "science8.force_pressure",
+      "title": "Force and Pressure",
+      "title_hi": "बल और दाब",
+      "summary": "How pushes and pulls change motion, and how force spread over area becomes pressure.",
+      "concepts": [
+        {
+          "id": "science8.force_pressure.force_basics",
+          "name": "Force basics",
+          "key_formula": "F causes change in state of motion",
+          "common_error": "Confusing mass with weight",
+          "exam_weight": 3,
+          "prereq_ids": [],
+          "text": [
+            "A force is a push or a pull that acts on an object. Forces can make a resting object move, slow down a moving object, or change the direction in which it travels. They can also change the shape of soft objects such as clay.",
+            "Mass is the amount of matter in an object and stays the same anywhere, while weight is the pull of gravity on that mass and changes with location. A book on Earth and the same book on the Moon have equal mass but different weight."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "What does a force do to an object?",
+              "explanation": "A force is a push or pull that can change an object's state of motion or its shape.",
+              "options": [
+                { "body": "Changes its state of motion or shape", "is_correct": true },
+                { "body": "Changes its colour", "is_correct": false },
+                { "body": "Makes it heavier", "is_correct": false },
+                { "body": "Cools it down", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "A book rests on a table. Which statement is true?",
+              "explanation": "The table exerts an upward normal force that balances the book's weight, so it stays at rest.",
+              "options": [
+                { "body": "The table pushes up on the book with a normal force", "is_correct": true },
+                { "body": "No forces act on the book", "is_correct": false },
+                { "body": "Gravity only acts when the book falls", "is_correct": false },
+                { "body": "The book pulls the table down only", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A 5 N and a 3 N force act in the same direction on a cart. What is the net force?",
+              "explanation": "Forces in the same direction add, so the net force is 5 + 3 = 8 N.",
+              "options": [
+                { "body": "8 N", "is_correct": true },
+                { "body": "2 N", "is_correct": false },
+                { "body": "15 N", "is_correct": false },
+                { "body": "1.67 N", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.force_pressure.pressure",
+          "name": "Pressure",
+          "key_formula": "P = F/A",
+          "common_error": "Forgetting area is in the denominator",
+          "exam_weight": 5,
+          "prereq_ids": ["science8.force_pressure.force_basics"],
+          "text": [
+            "Pressure tells us how concentrated a force is. It is the force applied divided by the area over which it spreads, written as P = F / A. The same force over a tiny area gives a very large pressure.",
+            "Because area sits in the denominator, a smaller contact area means higher pressure for the same force. This is why a sharp nail pierces wood easily while a blunt one does not, even when you push with equal strength."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Pressure is defined as...",
+              "explanation": "Pressure is force divided by the area over which it acts: P = F / A.",
+              "options": [
+                { "body": "Force divided by area", "is_correct": true },
+                { "body": "Force multiplied by area", "is_correct": false },
+                { "body": "Mass divided by volume", "is_correct": false },
+                { "body": "Energy per second", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Why does a sharp knife cut better than a blunt one?",
+              "explanation": "A sharp edge contacts a smaller area, so for the same force the pressure is much higher.",
+              "options": [
+                { "body": "It applies the same force over a smaller area, raising pressure", "is_correct": true },
+                { "body": "It applies more total force", "is_correct": false },
+                { "body": "It is simply made of harder metal", "is_correct": false },
+                { "body": "It reduces the weight of the object", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A 200 N force is applied over 0.1 m\u00b2. What is the pressure?",
+              "explanation": "P = F / A = 200 / 0.1 = 2000 pascals.",
+              "options": [
+                { "body": "2000 Pa", "is_correct": true },
+                { "body": "20 Pa", "is_correct": false },
+                { "body": "200 Pa", "is_correct": false },
+                { "body": "20000 Pa", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.force_pressure.atmospheric_pressure",
+          "name": "Atmospheric pressure",
+          "key_formula": "",
+          "common_error": "",
+          "exam_weight": 2,
+          "prereq_ids": [],
+          "text": [
+            "The air around us has weight, and the column of air above the ground presses down on everything. This downward push of the atmosphere is called atmospheric pressure.",
+            "Higher up a mountain there is less air above you, so the atmospheric pressure is lower than at sea level. That is why water boils at a lower temperature on a mountain top."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Atmospheric pressure is caused by...",
+              "explanation": "The weight of the column of air above us presses down on the surface below.",
+              "options": [
+                { "body": "The weight of air above us", "is_correct": true },
+                { "body": "The Earth's magnetic field", "is_correct": false },
+                { "body": "Solar radiation", "is_correct": false },
+                { "body": "Ocean tides", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Why does atmospheric pressure decrease as altitude increases?",
+              "explanation": "Higher up there is less air above you, so the weight of the air column is smaller.",
+              "options": [
+                { "body": "There is less air above you", "is_correct": true },
+                { "body": "The air only gets colder", "is_correct": false },
+                { "body": "Gravity weakens sharply", "is_correct": false },
+                { "body": "Air becomes denser", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A barometer reads lower on a mountaintop than at sea level. This shows...",
+              "explanation": "Lower readings with height show that atmospheric pressure falls as altitude rises.",
+              "options": [
+                { "body": "Pressure falls with altitude", "is_correct": true },
+                { "body": "Pressure rises with altitude", "is_correct": false },
+                { "body": "Pressure is constant", "is_correct": false },
+                { "body": "Altitude has no effect", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        }
+      ]
+    },
+    {
+      "id": "science8.friction",
+      "title": "Friction",
+      "title_hi": "घर्षण",
+      "summary": "The contact force that opposes motion, what affects it, and how we control it.",
+      "concepts": [
+        {
+          "id": "science8.friction.types_of_friction",
+          "name": "Types of friction",
+          "key_formula": "",
+          "common_error": "Thinking rolling friction > sliding friction",
+          "exam_weight": 3,
+          "prereq_ids": ["science8.force_pressure.force_basics"],
+          "text": [
+            "Friction is the force that opposes the relative motion of two surfaces in contact. Without friction we could not walk, because our feet would simply slip against the ground.",
+            "There are several kinds of friction. Sliding friction acts when surfaces slide past each other, while rolling friction acts when an object rolls. Rolling friction is generally much smaller than sliding friction."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Which force opposes motion between surfaces in contact?",
+              "explanation": "Friction is the contact force that resists relative motion between surfaces.",
+              "options": [
+                { "body": "Friction", "is_correct": true },
+                { "body": "Gravity", "is_correct": false },
+                { "body": "Magnetism", "is_correct": false },
+                { "body": "Tension", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Compared with sliding friction, rolling friction is generally...",
+              "explanation": "Wheels roll instead of slide, so rolling friction is usually much less than sliding friction.",
+              "options": [
+                { "body": "Less than sliding friction", "is_correct": true },
+                { "body": "Greater than sliding friction", "is_correct": false },
+                { "body": "Equal to sliding friction", "is_correct": false },
+                { "body": "Always zero", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "You slide a box, then put it on wheels. Friction...",
+              "explanation": "Wheels replace sliding with rolling, which lowers the friction resisting motion.",
+              "options": [
+                { "body": "Decreases because rolling replaces sliding", "is_correct": true },
+                { "body": "Increases", "is_correct": false },
+                { "body": "Stays the same", "is_correct": false },
+                { "body": "Becomes zero", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.friction.factors_affecting_friction",
+          "name": "Factors affecting friction",
+          "key_formula": "",
+          "common_error": "",
+          "exam_weight": 3,
+          "prereq_ids": ["science8.friction.types_of_friction"],
+          "text": [
+            "Friction depends mainly on the nature of the two surfaces and on the normal force pressing them together. Rough surfaces and heavier normal forces usually produce more friction.",
+            "The normal force is the perpendicular push between surfaces. Pressing two blocks together harder increases the normal force, which in turn increases the friction between them."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Friction mainly depends on...",
+              "explanation": "Friction depends on the two surface materials and the normal force pressing them together.",
+              "options": [
+                { "body": "The nature of surfaces and the normal force", "is_correct": true },
+                { "body": "Only the object's colour", "is_correct": false },
+                { "body": "Only its speed", "is_correct": false },
+                { "body": "Only its mass", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Increasing the normal force between two surfaces usually...",
+              "explanation": "A larger normal force presses surfaces together more, increasing friction.",
+              "options": [
+                { "body": "Increases friction", "is_correct": true },
+                { "body": "Decreases friction", "is_correct": false },
+                { "body": "Removes friction", "is_correct": false },
+                { "body": "Has no effect", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A heavier load is dragged across the floor. Compared with a lighter load, friction is...",
+              "explanation": "Heavier load means a larger normal force, so friction is greater.",
+              "options": [
+                { "body": "Greater because the normal force is larger", "is_correct": true },
+                { "body": "Smaller", "is_correct": false },
+                { "body": "The same", "is_correct": false },
+                { "body": "Zero", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.friction.reducing_friction",
+          "name": "Reducing friction",
+          "key_formula": "",
+          "common_error": "",
+          "exam_weight": 2,
+          "prereq_ids": [],
+          "text": [
+            "We often want less friction so machines run smoothly. A thin oil or grease layer keeps surfaces from directly touching, which greatly lowers the friction between them.",
+            "Ball bearings reduce friction by turning sliding motion into rolling motion. Because rolling friction is small, the axle can turn with much less resistance than if it slid against its housing."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Which method reduces friction?",
+              "explanation": "A lubricant such as oil keeps surfaces apart and lowers friction.",
+              "options": [
+                { "body": "Using a lubricant like oil", "is_correct": true },
+                { "body": "Increasing surface roughness", "is_correct": false },
+                { "body": "Adding weight", "is_correct": false },
+                { "body": "Heating the surface", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Ball bearings reduce friction by...",
+              "explanation": "They let surfaces roll past each other instead of sliding, which is much smoother.",
+              "options": [
+                { "body": "Replacing sliding with rolling", "is_correct": true },
+                { "body": "Increasing contact area", "is_correct": false },
+                { "body": "Gluing surfaces together", "is_correct": false },
+                { "body": "Only adding grease", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "Two identical blocks slide; one has oil between the surfaces. The oiled block...",
+              "explanation": "Oil acts as a lubricant, so the oiled block experiences less friction.",
+              "options": [
+                { "body": "Experiences less friction", "is_correct": true },
+                { "body": "Experiences more friction", "is_correct": false },
+                { "body": "Experiences the same friction", "is_correct": false },
+                { "body": "Stops instantly", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        }
+      ]
+    },
+    {
+      "id": "science8.cell_structure",
+      "title": "Cell Structure",
+      "title_hi": "कोशिका संरचना",
+      "summary": "The basic unit of life, how plant and animal cells differ, and key organelles.",
+      "concepts": [
+        {
+          "id": "science8.cell_structure.cell_discovery",
+          "name": "Cell discovery",
+          "key_formula": "",
+          "common_error": "",
+          "exam_weight": 1,
+          "prereq_ids": [],
+          "text": [
+            "Cells are so small that they were unseen until instruments could magnify tiny things. The first clear views of cells came from early microscopes built in the seventeenth century.",
+            "Robert Hooke looked at thin slices of cork and saw many empty box-like spaces. He named these compartments 'cells' because they reminded him of the small rooms in a monastery."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "The cell was first observed using...",
+              "explanation": "Early microscopes revealed structures too small for the naked eye.",
+              "options": [
+                { "body": "A microscope", "is_correct": true },
+                { "body": "A telescope", "is_correct": false },
+                { "body": "A simple magnifying glass alone", "is_correct": false },
+                { "body": "The naked eye", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Robert Hooke coined 'cell' after seeing...",
+              "explanation": "He saw box-like empty spaces in cork and named them cells.",
+              "options": [
+                { "body": "Box-like compartments in cork", "is_correct": true },
+                { "body": "Animal blood", "is_correct": false },
+                { "body": "A leaf's green colour", "is_correct": false },
+                { "body": "Bacteria dividing", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "An object too small to see with the naked eye is best studied with...",
+              "explanation": "A microscope magnifies tiny objects so they become visible.",
+              "options": [
+                { "body": "A microscope", "is_correct": true },
+                { "body": "A lens held by hand only", "is_correct": false },
+                { "body": "A ruler", "is_correct": false },
+                { "body": "A mirror", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.cell_structure.plant_vs_animal_cells",
+          "name": "Plant vs animal cells",
+          "key_formula": "",
+          "common_error": "Assuming all cells have cell walls",
+          "exam_weight": 4,
+          "prereq_ids": ["science8.cell_structure.cell_discovery"],
+          "text": [
+            "Plant cells are enclosed by a rigid cell wall outside the membrane, giving them a fixed rectangular shape. Animal cells have no cell wall and are usually rounder and more flexible.",
+            "Plant cells contain green chloroplasts that capture sunlight for photosynthesis, while animal cells lack chloroplasts. Both kinds of cells still share a membrane, cytoplasm, and a nucleus."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "Which structure is found in plant cells but usually not in animal cells?",
+              "explanation": "Plant cells have a rigid cell wall outside the membrane; animal cells do not.",
+              "options": [
+                { "body": "Cell wall", "is_correct": true },
+                { "body": "Cell membrane", "is_correct": false },
+                { "body": "Cytoplasm", "is_correct": false },
+                { "body": "Nucleus", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Plant cells often contain chloroplasts because they...",
+              "explanation": "Chloroplasts capture sunlight to carry out photosynthesis and make food.",
+              "options": [
+                { "body": "Carry out photosynthesis", "is_correct": true },
+                { "body": "Produce proteins only", "is_correct": false },
+                { "body": "Store DNA", "is_correct": false },
+                { "body": "Divide faster", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A cell with no cell wall and no chloroplasts is most likely...",
+              "explanation": "Lack of a wall and chloroplasts points to an animal cell.",
+              "options": [
+                { "body": "An animal cell", "is_correct": true },
+                { "body": "A plant cell", "is_correct": false },
+                { "body": "A bacterial cell", "is_correct": false },
+                { "body": "A fungal cell with a wall", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        },
+        {
+          "id": "science8.cell_structure.cell_organelles",
+          "name": "Cell organelles",
+          "key_formula": "",
+          "common_error": "",
+          "exam_weight": 4,
+          "prereq_ids": ["science8.cell_structure.plant_vs_animal_cells"],
+          "text": [
+            "The nucleus acts as the control centre of the cell and stores the genetic material, DNA, that carries instructions for the cell's activities. It is usually the largest organelle and sits near the centre.",
+            "Mitochondria are organelles that release energy the cell can use by breaking down food. Because they supply most of the cell's usable energy, they are often called the powerhouses of the cell."
+          ],
+          "questions": [
+            {
+              "bloom_level": "remember",
+              "difficulty_layer": 1,
+              "prompt": "The nucleus is the organelle that...",
+              "explanation": "The nucleus stores the cell's DNA and controls its activities.",
+              "options": [
+                { "body": "Stores genetic material (DNA)", "is_correct": true },
+                { "body": "Produces energy", "is_correct": false },
+                { "body": "Packages proteins for export", "is_correct": false },
+                { "body": "Controls water balance", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "understand",
+              "difficulty_layer": 2,
+              "prompt": "Mitochondria are called the powerhouse because they...",
+              "explanation": "They release most of the usable energy (ATP) the cell needs.",
+              "options": [
+                { "body": "Produce most of the cell's usable energy", "is_correct": true },
+                { "body": "Store waste", "is_correct": false },
+                { "body": "Make the cell wall", "is_correct": false },
+                { "body": "Carry out photosynthesis", "is_correct": false }
+              ]
+            },
+            {
+              "bloom_level": "apply",
+              "difficulty_layer": 3,
+              "prompt": "A cell needing lots of energy, like a muscle cell, would have many...",
+              "explanation": "Energy-hungry cells contain many mitochondria to supply ATP.",
+              "options": [
+                { "body": "Mitochondria", "is_correct": true },
+                { "body": "Vacuoles", "is_correct": false },
+                { "body": "Cell walls", "is_correct": false },
+                { "body": "Chloroplasts", "is_correct": false }
+              ]
+            }
+          ],
+          "source_authority": "Sarvo Shala (original, not NCERT text)",
+          "generation_method": "original",
+          "review_status": "reviewed"
+        }
+      ]
+    }
+  ]
+}
