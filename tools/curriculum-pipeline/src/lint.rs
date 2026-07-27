@@ -30,9 +30,9 @@ pub fn lint(subject: &SubjectFile) -> Vec<LintIssue> {
     let mut issues = Vec::new();
 
     for chapter in &subject.chapters {
+        check_text(&mut issues, &chapter.id, "summary", &chapter.summary);
         for concept in &chapter.concepts {
             check_text(&mut issues, &concept.id, "name", &concept.name);
-            check_text(&mut issues, &concept.id, "summary", &chapter.summary);
             for (ti, t) in concept.text.iter().enumerate() {
                 check_text(&mut issues, &concept.id, &format!("text[{}]", ti + 1), t);
             }
@@ -114,5 +114,31 @@ mod tests {
         let issues = lint(&subject);
         assert_eq!(issues.len(), 1);
         assert!(issues[0].message.contains("core principles of"));
+    }
+
+    #[test]
+    fn reports_filler_chapter_summary_only_once_per_chapter() {
+        let subject = SubjectFile {
+            subject: "Science".to_string(),
+            subject_hi: String::new(),
+            grade: 8,
+            chapters: vec![ChapterAuthoring {
+                id: "science8.test".to_string(),
+                title: "Test".to_string(),
+                title_hi: String::new(),
+                summary: "The core principles of motion are covered here.".to_string(),
+                concepts: vec![
+                    clean_concept("science8.test.c1"),
+                    clean_concept("science8.test.c2"),
+                ],
+            }],
+        };
+        let issues = lint(&subject);
+        let summary_issues: Vec<_> = issues.iter().filter(|i| i.field == "summary").collect();
+        assert_eq!(
+            summary_issues.len(),
+            1,
+            "expected the chapter summary to be linted once, not once per concept: {issues:?}"
+        );
     }
 }

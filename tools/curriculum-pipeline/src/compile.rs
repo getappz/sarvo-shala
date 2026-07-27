@@ -1,4 +1,5 @@
 use crate::schema::{GenerationMethod, ReviewStatus, SubjectFile};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -62,6 +63,11 @@ fn insert_subject(conn: &rusqlite::Connection, subject: &SubjectFile) -> anyhow:
             conn.last_insert_rowid()
         });
 
+    // Maps each concept's authoring id (e.g. "science8.force_pressure.force_basics")
+    // to its inserted row id, so prereq_ids can be resolved after every concept in
+    // the subject has been inserted (prereqs may point across chapters).
+    let mut concept_row_ids: HashMap<&str, i64> = HashMap::new();
+
     for (ci, chapter) in subject.chapters.iter().enumerate() {
         let chapter_id: i64 = conn
             .query_row(
@@ -98,6 +104,7 @@ fn insert_subject(conn: &rusqlite::Connection, subject: &SubjectFile) -> anyhow:
                 ],
             )?;
             let concept_id = conn.last_insert_rowid();
+            concept_row_ids.insert(concept.id.as_str(), concept_id);
 
             for (ti, text) in concept.text.iter().enumerate() {
                 conn.execute(
@@ -131,25 +138,23 @@ fn insert_subject(conn: &rusqlite::Connection, subject: &SubjectFile) -> anyhow:
                 }
             }
         }
+    }
 
+    // Resolve prereq_ids (authoring ids) against concept_row_ids now that every
+    // concept in the subject has a row id, including cross-chapter references.
+    for chapter in &subject.chapters {
         for concept in &chapter.concepts {
             if concept.prereq_ids.is_empty() {
                 continue;
             }
-            let concept_id: i64 = conn.query_row(
-                "SELECT c.id FROM concepts c JOIN chapters ch ON c.chapter_id = ch.id WHERE ch.subject_id = ?1 AND c.name = ?2",
-                rusqlite::params![subject_id, concept.name],
-                |r| r.get(0),
-            )?;
+            let Some(&concept_row_id) = concept_row_ids.get(concept.id.as_str()) else {
+                continue;
+            };
             for prereq_id_str in &concept.prereq_ids {
-                if let Ok(prereq_row_id) = conn.query_row::<i64, _, _>(
-                    "SELECT c2.id FROM concepts c2 JOIN chapters ch2 ON c2.chapter_id = ch2.id WHERE ch2.subject_id = ?1 AND c2.name = ?2",
-                    rusqlite::params![subject_id, prereq_id_str],
-                    |r| r.get(0),
-                ) {
+                if let Some(&prereq_row_id) = concept_row_ids.get(prereq_id_str.as_str()) {
                     conn.execute(
                         "INSERT OR IGNORE INTO concept_prereqs (concept_id, prereq_id) VALUES (?1, ?2)",
-                        rusqlite::params![concept_id, prereq_row_id],
+                        rusqlite::params![concept_row_id, prereq_row_id],
                     )?;
                 }
             }
@@ -246,5 +251,37 @@ mod tests {
             .unwrap();
         assert_eq!(concept_count, 1);
         assert_eq!(question_count, 1);
+    }
+
+    #[test]
+    fn compile_links_prereqs_by_authoring_id_across_chapters() {
+        let tmp = TempDir::new().unwrap();
+        let mut subject = minimal_subject_file();
+        subject.chapters[0].concepts[0].id = "science8.force_pressure.force_basics".to_string();
+        subject.chapters[0].concepts[0].name = "Force basics".to_string();
+        let mut pressure = subject.chapters[0].concepts[0].clone();
+        pressure.id = "science8.force_pressure.pressure".to_string();
+        pressure.name = "Pressure".to_string();
+        pressure.prereq_ids = vec!["science8.force_pressure.force_basics".to_string()];
+        subject.chapters[0].concepts.push(pressure);
+
+        let json_path = tmp.path().join("grade8.json");
+        fs::write(&json_path, serde_json::to_string_pretty(&subject).unwrap()).unwrap();
+        let out_path = tmp.path().join("output.db.zst");
+        compile(tmp.path(), &out_path).unwrap();
+
+        let compressed = fs::read(&out_path).unwrap();
+        let decompressed = zstd::decode_all(std::io::Cursor::new(&compressed)).unwrap();
+        let db_path = tmp.path().join("verify.db");
+        fs::write(&db_path, &decompressed).unwrap();
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+
+        let prereq_count: i64 = conn
+            .query_row("SELECT count(*) FROM concept_prereqs", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(
+            prereq_count, 1,
+            "expected the Pressure -> Force basics prereq link to be compiled"
+        );
     }
 }

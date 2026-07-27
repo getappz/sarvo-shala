@@ -127,8 +127,21 @@ fn extract_json(text: &str) -> &str {
     }
     if let Some(start) = text.find('{') {
         let mut depth = 0;
+        let mut in_string = false;
+        let mut escaped = false;
         for (i, ch) in text[start..].char_indices() {
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_string = false;
+                }
+                continue;
+            }
             match ch {
+                '"' => in_string = true,
                 '{' => depth += 1,
                 '}' => {
                     depth -= 1;
@@ -175,5 +188,17 @@ mod tests {
     fn extract_json_from_plain() {
         let input = "{\"key\": \"value\"}";
         assert_eq!(extract_json(input), "{\"key\": \"value\"}");
+    }
+
+    #[test]
+    fn extract_json_tolerates_braces_inside_string_values() {
+        let input = "{\"key_formula\": \"units {N} = {kg·m/s²}\", \"ok\": true}";
+        assert_eq!(extract_json(input), input);
+    }
+
+    #[test]
+    fn extract_json_tolerates_escaped_quotes_in_string_values() {
+        let input = "{\"prompt\": \"say \\\"hello\\\"\", \"ok\": true}";
+        assert_eq!(extract_json(input), input);
     }
 }
