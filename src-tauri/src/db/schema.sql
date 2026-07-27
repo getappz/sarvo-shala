@@ -130,6 +130,31 @@ CREATE TABLE chat_messages (
   created_at INTEGER NOT NULL
 );
 
+-- Unified data layer (VFS): a generic folder tree that can hold items from
+-- outside the curriculum schema (e.g. documents stored in the sidecar
+-- agentflare-store vfs.db, see src-tauri/src/vfs/). item_id is opaque and
+-- deliberately not an FK -- the referenced content lives in a different
+-- SQLite database, so there is nothing local to enforce.
+CREATE TABLE folders (
+  id INTEGER PRIMARY KEY,
+  parent_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Deleting a folder does not delete its items -- they fall back to root
+-- (folder_id NULL) rather than silently destroying imported content.
+CREATE TABLE folder_items (
+  id INTEGER PRIMARY KEY,
+  folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL,
+  item_type TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
 -- One graded answer per (session, question): stops a fast double-click from
 -- double-counting mastery and score.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_answer
@@ -149,3 +174,6 @@ CREATE INDEX IF NOT EXISTS ix_question_options_question ON question_options(ques
 CREATE INDEX IF NOT EXISTS ix_quiz_answers_session ON quiz_answers(session_id);
 CREATE INDEX IF NOT EXISTS ix_chat_messages_chapter ON chat_messages(chapter_id);
 CREATE INDEX IF NOT EXISTS ix_concept_mastery_concept ON concept_mastery(concept_id);
+CREATE INDEX IF NOT EXISTS ix_folders_parent ON folders(parent_id);
+CREATE INDEX IF NOT EXISTS ix_folder_items_folder ON folder_items(folder_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_folder_item ON folder_items(folder_id, item_type, item_id);

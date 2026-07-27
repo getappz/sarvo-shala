@@ -3,3 +3,4 @@ pub mod progress;
 pub mod quiz;
 pub mod settings;
 pub mod tutor;
+pub mod vfs;
