@@ -192,8 +192,7 @@ pub fn generate_curriculum(
             mode: RunMode::Ask,
             tuning: RunTuning::default(),
             resume: None,
-        })
-        .map_err(|e| AppError::Engine(format!("harness error: {e}")))?;
+        })?;
 
     let mut full_text = String::new();
     for ev in rx {
@@ -232,75 +231,87 @@ fn insert_curriculum(
         &gen.subject.name_hi
     };
 
-    let subject_id = queries::insert_subject(db, grade, name, name_hi)?;
+    // Everything below runs inside one rusqlite transaction so a failure
+    // partway through (bad LLM output, a constraint violation) leaves no
+    // orphaned subject/chapter/concept rows behind.
+    let subject_id = db.with(|c| {
+        let tx = c.transaction()?;
 
-    for (ch_ord, ch) in gen.chapters.iter().enumerate() {
-        let chapter_id = queries::insert_chapter(
-            db,
-            subject_id,
-            ch_ord as i64 + 1,
-            &ch.title,
-            &ch.title_hi,
-            &ch.summary,
-        )?;
+        let subject_id = queries::insert_subject(&tx, grade, name, name_hi)?;
 
-        let mut concept_name_to_id: std::collections::HashMap<&str, i64> =
-            std::collections::HashMap::new();
-
-        for (cn_ord, cn) in ch.concepts.iter().enumerate() {
-            let concept_id = queries::insert_concept(
-                db,
-                chapter_id,
-                cn_ord as i64 + 1,
-                &cn.name,
-                &cn.key_formula,
-                &cn.common_error,
-                cn.exam_weight,
+        for (ch_ord, ch) in gen.chapters.iter().enumerate() {
+            let chapter_id = queries::insert_chapter(
+                &tx,
+                subject_id,
+                ch_ord as i64 + 1,
+                &ch.title,
+                &ch.title_hi,
+                &ch.summary,
             )?;
 
-            concept_name_to_id.insert(&cn.name, concept_id);
+            let mut concept_name_to_id: std::collections::HashMap<&str, i64> =
+                std::collections::HashMap::new();
 
-            for (sn_ord, sn) in cn.snippets.iter().enumerate() {
-                queries::insert_chapter_text(
-                    db,
+            for (cn_ord, cn) in ch.concepts.iter().enumerate() {
+                let concept_id = queries::insert_concept(
+                    &tx,
                     chapter_id,
-                    concept_id,
-                    sn_ord as i64 + 1,
-                    &sn.body,
+                    cn_ord as i64 + 1,
+                    &cn.name,
+                    &cn.key_formula,
+                    &cn.common_error,
+                    cn.exam_weight,
                 )?;
+
+                concept_name_to_id.insert(&cn.name, concept_id);
+
+                for (sn_ord, sn) in cn.snippets.iter().enumerate() {
+                    queries::insert_chapter_text(
+                        &tx,
+                        chapter_id,
+                        concept_id,
+                        sn_ord as i64 + 1,
+                        &sn.body,
+                    )?;
+                }
+
+                for q in &cn.questions {
+                    let qid = queries::insert_question(
+                        &tx,
+                        concept_id,
+                        &q.bloom_level,
+                        q.difficulty_layer,
+                        &q.prompt,
+                        &q.trap,
+                        &q.explanation,
+                    )?;
+
+                    for (opt_ord, opt) in q.options.iter().enumerate() {
+                        queries::insert_question_option(
+                            &tx,
+                            qid,
+                            opt_ord as i64 + 1,
+                            opt,
+                            opt_ord == q.correct,
+                        )?;
+                    }
+                }
             }
 
-            for q in &cn.questions {
-                let qid = queries::insert_question(
-                    db,
-                    concept_id,
-                    &q.bloom_level,
-                    q.difficulty_layer,
-                    &q.prompt,
-                    &q.trap,
-                    &q.explanation,
-                )?;
-
-                for (opt_ord, opt) in q.options.iter().enumerate() {
-                    queries::insert_question_option(
-                        db,
-                        qid,
-                        opt_ord as i64 + 1,
-                        opt,
-                        opt_ord == q.correct,
-                    )?;
+            for prereq in &ch.prereqs {
+                if let (Some(&cid), Some(&pid)) = (
+                    concept_name_to_id.get(prereq.concept.as_str()),
+                    concept_name_to_id.get(prereq.prereq.as_str()),
+                ) {
+                    queries::insert_concept_prereq(&tx, cid, pid)?;
                 }
             }
         }
 
-        for prereq in &ch.prereqs {
-            if let (Some(&cid), Some(&pid)) =
-                (concept_name_to_id.get(prereq.concept.as_str()), concept_name_to_id.get(prereq.prereq.as_str()))
-            {
-                queries::insert_concept_prereq(db, cid, pid)?;
-            }
-        }
-    }
+        tx.commit()?;
+
+        Ok(subject_id)
+    })?;
 
     Ok(Subject {
         id: subject_id,
@@ -344,5 +355,59 @@ mod tests {
         assert!(prompt.contains("grade 9"));
         assert!(prompt.contains("Physics"));
         assert!(prompt.contains("भौतिकी"));
+    }
+
+    #[test]
+    fn insert_curriculum_rolls_back_entirely_on_a_bad_question() {
+        let mut p = std::env::temp_dir();
+        p.push(format!("shala_curriculum_gen_{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&p);
+        let db = Db::open_or_init(&p).unwrap();
+
+        let gen = GeneratedCurriculum {
+            subject: GeneratedSubject {
+                name: "Physics".into(),
+                name_hi: String::new(),
+            },
+            chapters: vec![GeneratedChapter {
+                title: "Motion".into(),
+                title_hi: String::new(),
+                summary: String::new(),
+                concepts: vec![GeneratedConcept {
+                    name: "Velocity".into(),
+                    key_formula: String::new(),
+                    common_error: String::new(),
+                    exam_weight: 3,
+                    snippets: vec![GeneratedSnippet {
+                        body: "text".into(),
+                    }],
+                    // Not a valid `bloom_level` per the CHECK constraint on
+                    // `questions` -- fails partway through the transaction.
+                    questions: vec![GeneratedQuestion {
+                        bloom_level: "not_a_real_level".into(),
+                        difficulty_layer: 1,
+                        prompt: "?".into(),
+                        trap: String::new(),
+                        explanation: String::new(),
+                        options: vec!["a".into(), "b".into(), "c".into(), "d".into()],
+                        correct: 0,
+                    }],
+                }],
+                prereqs: vec![],
+            }],
+        };
+
+        let result = insert_curriculum(&db, 9, "Physics", "", &gen);
+        assert!(result.is_err(), "invalid bloom_level should fail the insert");
+
+        let subject_count: i64 = db
+            .with(|c| c.query_row("SELECT count(*) FROM subjects", [], |r| r.get(0)))
+            .unwrap();
+        assert_eq!(
+            subject_count, 0,
+            "a failed insert must not leave a partial subject behind"
+        );
+
+        let _ = std::fs::remove_file(&p);
     }
 }
