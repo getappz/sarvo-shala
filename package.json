@@ -14,16 +14,16 @@
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@fontsource/hind": "^5.3.0",
-    "@radix-ui/react-tooltip": "^1.2.13",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@tauri-apps/api": "^2.4.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
+    "@vitejs/plugin-react": "^6.0.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.1.5"

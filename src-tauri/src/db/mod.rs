@@ -54,6 +54,15 @@ const MIGRATION_SQL: &str = "
   CREATE INDEX IF NOT EXISTS ix_folders_parent ON folders(parent_id);
   CREATE INDEX IF NOT EXISTS ix_folder_items_folder ON folder_items(folder_id);
   CREATE UNIQUE INDEX IF NOT EXISTS uq_folder_item ON folder_items(folder_id, item_type, item_id);
+  ALTER TABLE concepts ADD COLUMN source_authority TEXT NOT NULL DEFAULT 'Sarvo Shala (original, not NCERT text)';
+  ALTER TABLE concepts ADD COLUMN generation_method TEXT NOT NULL DEFAULT 'original' CHECK (generation_method IN ('original','llm_generated','user_uploaded'));
+  ALTER TABLE concepts ADD COLUMN review_status TEXT NOT NULL DEFAULT 'reviewed' CHECK (review_status IN ('pending','reviewed'));
+  ALTER TABLE chapter_text ADD COLUMN source_authority TEXT NOT NULL DEFAULT 'Sarvo Shala (original, not NCERT text)';
+  ALTER TABLE chapter_text ADD COLUMN generation_method TEXT NOT NULL DEFAULT 'original' CHECK (generation_method IN ('original','llm_generated','user_uploaded'));
+  ALTER TABLE chapter_text ADD COLUMN review_status TEXT NOT NULL DEFAULT 'reviewed' CHECK (review_status IN ('pending','reviewed'));
+  ALTER TABLE questions ADD COLUMN source_authority TEXT NOT NULL DEFAULT 'Sarvo Shala (original, not NCERT text)';
+  ALTER TABLE questions ADD COLUMN generation_method TEXT NOT NULL DEFAULT 'original' CHECK (generation_method IN ('original','llm_generated','user_uploaded'));
+  ALTER TABLE questions ADD COLUMN review_status TEXT NOT NULL DEFAULT 'reviewed' CHECK (review_status IN ('pending','reviewed'));
 ";
 
 pub struct Db {
@@ -126,6 +135,100 @@ mod tests {
             .unwrap();
         assert_eq!(uv1, SCHEMA_VERSION);
         assert_eq!(uv2, SCHEMA_VERSION);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn provenance_columns_exist_with_correct_defaults_after_migrating_an_old_db() {
+        let p = temp_db();
+        {
+            let conn = rusqlite::Connection::open(&p).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE subjects (id INTEGER PRIMARY KEY, grade INTEGER NOT NULL, name TEXT NOT NULL);
+                 CREATE TABLE chapters (id INTEGER PRIMARY KEY, subject_id INTEGER NOT NULL REFERENCES subjects(id), ord INTEGER NOT NULL, title TEXT NOT NULL);
+                 CREATE TABLE concepts (
+                   id INTEGER PRIMARY KEY,
+                   chapter_id INTEGER NOT NULL REFERENCES chapters(id),
+                   ord INTEGER NOT NULL,
+                   name TEXT NOT NULL,
+                   key_formula TEXT NOT NULL DEFAULT '',
+                   common_error TEXT NOT NULL DEFAULT '',
+                   exam_weight INTEGER NOT NULL DEFAULT 1
+                 );
+                 CREATE TABLE chapter_text (
+                   id INTEGER PRIMARY KEY,
+                   chapter_id INTEGER NOT NULL REFERENCES chapters(id),
+                   concept_id INTEGER REFERENCES concepts(id),
+                   ord INTEGER NOT NULL,
+                   body TEXT NOT NULL
+                 );
+                 CREATE TABLE questions (
+                   id INTEGER PRIMARY KEY,
+                   concept_id INTEGER NOT NULL REFERENCES concepts(id),
+                   qtype TEXT NOT NULL,
+                   bloom_level TEXT NOT NULL,
+                   difficulty_layer INTEGER NOT NULL,
+                   prompt TEXT NOT NULL,
+                   trap TEXT NOT NULL DEFAULT '',
+                   explanation TEXT NOT NULL DEFAULT ''
+                 );
+                 CREATE TABLE question_options (
+                   id INTEGER PRIMARY KEY,
+                   question_id INTEGER NOT NULL REFERENCES questions(id),
+                   ord INTEGER NOT NULL,
+                   body TEXT NOT NULL,
+                   is_correct INTEGER NOT NULL DEFAULT 0
+                 );
+                 CREATE TABLE quiz_sessions (
+                   id INTEGER PRIMARY KEY,
+                   chapter_id INTEGER NOT NULL,
+                   started_at INTEGER NOT NULL,
+                   finished_at INTEGER,
+                   score REAL
+                 );
+                 CREATE TABLE quiz_answers (
+                   id INTEGER PRIMARY KEY,
+                   session_id INTEGER NOT NULL,
+                   question_id INTEGER NOT NULL,
+                   chosen_option_id INTEGER,
+                   correct INTEGER NOT NULL,
+                   answered_at INTEGER NOT NULL
+                 );
+                 CREATE TABLE chat_messages (
+                   id INTEGER PRIMARY KEY,
+                   chapter_id INTEGER NOT NULL,
+                   role TEXT NOT NULL,
+                   body TEXT NOT NULL,
+                   fsm_state TEXT NOT NULL DEFAULT '',
+                   created_at INTEGER NOT NULL
+                 );
+                 CREATE TABLE concept_mastery (
+                   concept_id INTEGER PRIMARY KEY,
+                   p_known REAL NOT NULL DEFAULT 0.2,
+                   attempts INTEGER NOT NULL DEFAULT 0,
+                   correct INTEGER NOT NULL DEFAULT 0,
+                   updated_at INTEGER NOT NULL
+                 );
+                 INSERT INTO subjects (id, grade, name) VALUES (1, 8, 'Science');
+                 INSERT INTO chapters (id, subject_id, ord, title) VALUES (1, 1, 1, 'Test Chapter');
+                 INSERT INTO concepts (id, chapter_id, ord, name) VALUES (1, 1, 1, 'Old concept');
+                 PRAGMA user_version = 4;",
+            )
+            .unwrap();
+        }
+        let db = Db::open_or_init(&p).unwrap();
+        let (authority, method, status): (String, String, String) = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT source_authority, generation_method, review_status FROM concepts WHERE id = 1",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+            })
+            .unwrap();
+        assert_eq!(authority, "Sarvo Shala (original, not NCERT text)");
+        assert_eq!(method, "original");
+        assert_eq!(status, "reviewed");
         let _ = std::fs::remove_file(&p);
     }
 
