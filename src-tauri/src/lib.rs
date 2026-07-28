@@ -1,5 +1,6 @@
 mod ai;
 mod commands;
+mod curriculum_gen;
 mod db;
 mod error;
 mod models;
@@ -36,6 +37,7 @@ pub fn run() {
             commands::curriculum::list_subjects,
             commands::curriculum::list_chapters,
             commands::curriculum::list_concepts,
+            commands::curriculum::generate_curriculum,
             commands::quiz::start_quiz,
             commands::quiz::submit_answer,
             commands::quiz::finish_quiz,

@@ -850,6 +850,111 @@ pub fn chat_history(db: &Db, chapter_id: i64) -> Result<Vec<ChatMessage>, AppErr
     Ok(rows)
 }
 
+// ---------- Curriculum generation inserts ----------
+// All operate on a plain `&rusqlite::Connection` (a `Transaction` derefs to
+// one) so `curriculum_gen::insert_curriculum` can run them inside a single
+// transaction instead of each auto-committing independently.
+
+pub fn insert_subject(
+    c: &rusqlite::Connection,
+    grade: i64,
+    name: &str,
+    name_hi: &str,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO subjects (grade, name, name_hi) VALUES (?1,?2,?3)",
+        (grade, name, name_hi),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_chapter(
+    c: &rusqlite::Connection,
+    subject_id: i64,
+    ord: i64,
+    title: &str,
+    title_hi: &str,
+    summary: &str,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO chapters (subject_id, ord, title, title_hi, summary) VALUES (?1,?2,?3,?4,?5)",
+        (subject_id, ord, title, title_hi, summary),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_concept(
+    c: &rusqlite::Connection,
+    chapter_id: i64,
+    ord: i64,
+    name: &str,
+    key_formula: &str,
+    common_error: &str,
+    exam_weight: i64,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO concepts (chapter_id, ord, name, key_formula, common_error, exam_weight) VALUES (?1,?2,?3,?4,?5,?6)",
+        (chapter_id, ord, name, key_formula, common_error, exam_weight),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_chapter_text(
+    c: &rusqlite::Connection,
+    chapter_id: i64,
+    concept_id: i64,
+    ord: i64,
+    body: &str,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO chapter_text (chapter_id, concept_id, ord, body) VALUES (?1,?2,?3,?4)",
+        (chapter_id, concept_id, ord, body),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_question(
+    c: &rusqlite::Connection,
+    concept_id: i64,
+    bloom_level: &str,
+    difficulty_layer: i64,
+    prompt: &str,
+    trap: &str,
+    explanation: &str,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO questions (concept_id, qtype, bloom_level, difficulty_layer, prompt, trap, explanation) VALUES (?1,'mcq',?2,?3,?4,?5,?6)",
+        (concept_id, bloom_level, difficulty_layer, prompt, trap, explanation),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_question_option(
+    c: &rusqlite::Connection,
+    question_id: i64,
+    ord: i64,
+    body: &str,
+    is_correct: bool,
+) -> rusqlite::Result<i64> {
+    c.execute(
+        "INSERT INTO question_options (question_id, ord, body, is_correct) VALUES (?1,?2,?3,?4)",
+        (question_id, ord, body, if is_correct { 1 } else { 0 }),
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+pub fn insert_concept_prereq(
+    c: &rusqlite::Connection,
+    concept_id: i64,
+    prereq_id: i64,
+) -> rusqlite::Result<()> {
+    c.execute(
+        "INSERT INTO concept_prereqs (concept_id, prereq_id) VALUES (?1,?2)",
+        (concept_id, prereq_id),
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

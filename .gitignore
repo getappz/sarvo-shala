@@ -12,6 +12,7 @@ src-tauri/target/
 docs/*.md
 # reference clones for research — not part of this project's source
 .refs/
+refs/
 tools/curriculum-pipeline/target/
 target/
 
