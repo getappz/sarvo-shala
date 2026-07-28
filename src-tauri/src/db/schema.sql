@@ -26,7 +26,10 @@ CREATE TABLE concepts (
   name TEXT NOT NULL,
   key_formula TEXT NOT NULL DEFAULT '',
   common_error TEXT NOT NULL DEFAULT '',
-  exam_weight INTEGER NOT NULL DEFAULT 1  -- 1..5
+  exam_weight INTEGER NOT NULL DEFAULT 1,  -- 1..5
+  source_authority TEXT NOT NULL,
+  generation_method TEXT NOT NULL CHECK (generation_method IN ('original','llm_generated','user_uploaded')),
+  review_status TEXT NOT NULL CHECK (review_status IN ('pending','reviewed'))
 );
 
 CREATE TABLE concept_prereqs (
@@ -40,7 +43,10 @@ CREATE TABLE chapter_text (
   chapter_id INTEGER NOT NULL REFERENCES chapters(id),
   concept_id INTEGER REFERENCES concepts(id),
   ord INTEGER NOT NULL,
-  body TEXT NOT NULL            -- ORIGINAL sample content, never verbatim NCERT
+  body TEXT NOT NULL,            -- ORIGINAL sample content, never verbatim NCERT
+  source_authority TEXT NOT NULL,
+  generation_method TEXT NOT NULL CHECK (generation_method IN ('original','llm_generated','user_uploaded')),
+  review_status TEXT NOT NULL CHECK (review_status IN ('pending','reviewed'))
 );
 
 CREATE TABLE questions (
@@ -51,7 +57,10 @@ CREATE TABLE questions (
   difficulty_layer INTEGER NOT NULL CHECK (difficulty_layer IN (1,2,3)),
   prompt TEXT NOT NULL,
   trap TEXT NOT NULL DEFAULT '',
-  explanation TEXT NOT NULL DEFAULT ''
+  explanation TEXT NOT NULL DEFAULT '',
+  source_authority TEXT NOT NULL,
+  generation_method TEXT NOT NULL CHECK (generation_method IN ('original','llm_generated','user_uploaded')),
+  review_status TEXT NOT NULL CHECK (review_status IN ('pending','reviewed'))
 );
 
 CREATE TABLE question_options (

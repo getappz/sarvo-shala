@@ -268,20 +268,20 @@ pub fn seed_if_empty(db: &Db) -> Result<(), AppError> {
         }
         for cn in CONCEPTS {
             tx.execute(
-                "INSERT INTO concepts (id, chapter_id, ord, name, key_formula, common_error, exam_weight) VALUES (?1,?2,?3,?4,?5,?6,?7)",
-                (cn.id, cn.chapter_id, cn.ord, cn.name, cn.key_formula, cn.common_error, cn.exam_weight),
+                "INSERT INTO concepts (id, chapter_id, ord, name, key_formula, common_error, exam_weight, source_authority, generation_method, review_status) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'original','reviewed')",
+                (cn.id, cn.chapter_id, cn.ord, cn.name, cn.key_formula, cn.common_error, cn.exam_weight, "Sarvo Shala (original, not NCERT text)"),
             )?;
         }
         for sn in SNIPPETS {
             tx.execute(
-                "INSERT INTO chapter_text (id, chapter_id, concept_id, ord, body) VALUES (?1,?2,?3,?4,?5)",
-                (sn.id, sn.chapter_id, sn.concept_id, sn.ord, sn.body),
+                "INSERT INTO chapter_text (id, chapter_id, concept_id, ord, body, source_authority, generation_method, review_status) VALUES (?1,?2,?3,?4,?5,?6,'original','reviewed')",
+                (sn.id, sn.chapter_id, sn.concept_id, sn.ord, sn.body, "Sarvo Shala (original, not NCERT text)"),
             )?;
         }
         for q in QUESTIONS {
             tx.execute(
-                "INSERT INTO questions (id, concept_id, qtype, bloom_level, difficulty_layer, prompt, trap, explanation) VALUES (?1,?2,'mcq',?3,?4,?5,?6,?7)",
-                (q.id, q.concept_id, q.bloom, q.difficulty_layer, q.prompt, q.trap, q.explanation),
+                "INSERT INTO questions (id, concept_id, qtype, bloom_level, difficulty_layer, prompt, trap, explanation, source_authority, generation_method, review_status) VALUES (?1,?2,'mcq',?3,?4,?5,?6,?7,?8,'original','reviewed')",
+                (q.id, q.concept_id, q.bloom, q.difficulty_layer, q.prompt, q.trap, q.explanation, "Sarvo Shala (original, not NCERT text)"),
             )?;
             let mut pairs: [(&str, bool); 4] = [
                 (q.opts[0], 0 == q.correct),
