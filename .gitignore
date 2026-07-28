@@ -10,6 +10,10 @@ src-tauri/target/
 
 # internal project docs — kept locally, not published to the repo
 docs/*.md
-
 # reference clones for research — not part of this project's source
 .refs/
+tools/curriculum-pipeline/target/
+target/
+
+# local cargo config — machine-specific (worktree target-dir, sccache paths)
+.cargo/
