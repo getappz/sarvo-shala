@@ -35,6 +35,25 @@ const MIGRATION_SQL: &str = "
     badge_id TEXT PRIMARY KEY,
     earned_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS folders (
+    id INTEGER PRIMARY KEY,
+    parent_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS folder_items (
+    id INTEGER PRIMARY KEY,
+    folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL,
+    item_type TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS ix_folders_parent ON folders(parent_id);
+  CREATE INDEX IF NOT EXISTS ix_folder_items_folder ON folder_items(folder_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS uq_folder_item ON folder_items(folder_id, item_type, item_id);
   ALTER TABLE concepts ADD COLUMN source_authority TEXT NOT NULL DEFAULT 'Sarvo Shala (original, not NCERT text)';
   ALTER TABLE concepts ADD COLUMN generation_method TEXT NOT NULL DEFAULT 'original' CHECK (generation_method IN ('original','llm_generated','user_uploaded'));
   ALTER TABLE concepts ADD COLUMN review_status TEXT NOT NULL DEFAULT 'reviewed' CHECK (review_status IN ('pending','reviewed'));
@@ -217,7 +236,14 @@ mod tests {
     fn schema_has_tables() {
         let p = temp_db();
         let db = Db::open_or_init(&p).unwrap();
-        for t in ["concepts", "review_cards", "settings", "chat_messages"] {
+        for t in [
+            "concepts",
+            "review_cards",
+            "settings",
+            "chat_messages",
+            "folders",
+            "folder_items",
+        ] {
             let count: i32 = db
                 .with(|c| {
                     c.query_row(

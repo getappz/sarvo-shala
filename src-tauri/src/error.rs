@@ -10,6 +10,8 @@ pub enum AppError {
     BadInput(String),
     #[error("engine error: {0}")]
     Engine(String),
+    #[error("vfs error: {0}")]
+    Vfs(#[from] agentflare_store::Error),
 }
 
 impl Serialize for AppError {

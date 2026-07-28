@@ -128,3 +128,72 @@ pub struct GamificationSummary {
     pub xp_for_next_level: i64,
     pub badges: Vec<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Folder {
+    pub id: i64,
+    pub parent_id: Option<i64>,
+    pub title: String,
+    pub sort_order: i64,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderItem {
+    pub id: i64,
+    pub folder_id: Option<i64>,
+    pub item_type: String,
+    pub item_id: String,
+    pub sort_order: i64,
+    pub created_at: i64,
+}
+
+/// Thin camelCase-on-the-wire view of an `agentflare_store::documents::Document`
+/// -- the store crate is shared with other agentflare tools and uses its own
+/// (snake_case) wire format, which we don't want to leak into this app's IPC.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VfsDocument {
+    pub id: String,
+    pub path: String,
+    pub title: String,
+    pub content: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+impl From<agentflare_store::documents::Document> for VfsDocument {
+    fn from(d: agentflare_store::documents::Document) -> Self {
+        VfsDocument {
+            id: d.id,
+            path: d.path,
+            title: d.title,
+            content: d.content,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VfsDocumentMatch {
+    pub id: String,
+    pub path: String,
+    pub snippet: String,
+    pub score: f64,
+}
+
+impl From<agentflare_store::documents::DocMatch> for VfsDocumentMatch {
+    fn from(m: agentflare_store::documents::DocMatch) -> Self {
+        VfsDocumentMatch {
+            id: m.id,
+            path: m.path,
+            snippet: m.snippet,
+            score: m.score,
+        }
+    }
+}
