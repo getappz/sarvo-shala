@@ -154,7 +154,10 @@ fn extract_json(text: &str) -> Result<String, AppError> {
     let trimmed = text.trim();
     if let Some(start) = trimmed.find("```") {
         let after_fence = &trimmed[start + 3..];
-        let langless = after_fence.strip_prefix("json").or_else(|| after_fence.strip_prefix("JSON")).unwrap_or(after_fence);
+        let langless = after_fence
+            .strip_prefix("json")
+            .or_else(|| after_fence.strip_prefix("JSON"))
+            .unwrap_or(after_fence);
         if let Some(end) = langless.rfind("```") {
             return Ok(langless[..end].trim().to_string());
         }
@@ -162,9 +165,7 @@ fn extract_json(text: &str) -> Result<String, AppError> {
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
         return Ok(trimmed.to_string());
     }
-    Err(AppError::Engine(
-        "no valid JSON found in response".into(),
-    ))
+    Err(AppError::Engine("no valid JSON found in response".into()))
 }
 
 pub fn generate_curriculum(
@@ -184,15 +185,14 @@ pub fn generate_curriculum(
             .map(|d| d.as_nanos())
             .unwrap_or(0)
     );
-    let (_handle, rx) = claude
-        .run_channel(RunRequest {
-            run_id,
-            prompt,
-            cwd: None,
-            mode: RunMode::Ask,
-            tuning: RunTuning::default(),
-            resume: None,
-        })?;
+    let (_handle, rx) = claude.run_channel(RunRequest {
+        run_id,
+        prompt,
+        cwd: None,
+        mode: RunMode::Ask,
+        tuning: RunTuning::default(),
+        resume: None,
+    })?;
 
     let mut full_text = String::new();
     for ev in rx {
@@ -328,7 +328,10 @@ mod tests {
     #[test]
     fn extract_json_strips_code_fence() {
         let input = "Here is the JSON:\n```json\n{\"subject\":{\"name\":\"test\"}}\n```\n";
-        assert_eq!(extract_json(input).unwrap(), "{\"subject\":{\"name\":\"test\"}}");
+        assert_eq!(
+            extract_json(input).unwrap(),
+            "{\"subject\":{\"name\":\"test\"}}"
+        );
     }
 
     #[test]
@@ -398,7 +401,10 @@ mod tests {
         };
 
         let result = insert_curriculum(&db, 9, "Physics", "", &gen);
-        assert!(result.is_err(), "invalid bloom_level should fail the insert");
+        assert!(
+            result.is_err(),
+            "invalid bloom_level should fail the insert"
+        );
 
         let subject_count: i64 = db
             .with(|c| c.query_row("SELECT count(*) FROM subjects", [], |r| r.get(0)))
