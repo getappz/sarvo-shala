@@ -28,3 +28,4 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros", "time"
 async-trait = "0.1"
 thiserror = "2"
 agentflare-store = { path = "../../agentflare/crates/agentflare-store" }
+agent-harness = { version = "0.3", features = ["claude"] }

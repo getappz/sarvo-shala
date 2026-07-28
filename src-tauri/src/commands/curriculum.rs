@@ -1,3 +1,4 @@
+use crate::curriculum_gen;
 use crate::db::queries;
 use crate::db::Db;
 use crate::error::AppError;
@@ -32,6 +33,30 @@ pub fn list_concepts(state: State<Db>, chapter_id: i64) -> Result<Vec<Concept>, 
         )));
     }
     queries::list_concepts(&state, chapter_id)
+}
+
+#[tauri::command]
+pub async fn generate_curriculum(
+    state: tauri::State<'_, Db>,
+    grade: i64,
+    name: String,
+    name_hi: Option<String>,
+    num_chapters: Option<i64>,
+) -> Result<Subject, AppError> {
+    if !(1..=12).contains(&grade) {
+        return Err(AppError::BadInput(format!(
+            "grade must be between 1 and 12, got {grade}"
+        )));
+    }
+    let nch = num_chapters.unwrap_or(3).clamp(1, 10);
+    let name_hi = name_hi.filter(|s| !s.is_empty()).unwrap_or_default();
+    let db = (*state).clone();
+
+    tokio::task::spawn_blocking(move || {
+        curriculum_gen::generate_curriculum(&db, grade, &name, &name_hi, nch)
+    })
+    .await
+    .map_err(|e| AppError::Engine(format!("task join: {e}")))?
 }
 
 #[cfg(test)]

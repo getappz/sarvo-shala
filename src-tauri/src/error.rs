@@ -12,6 +12,8 @@ pub enum AppError {
     Engine(String),
     #[error("vfs error: {0}")]
     Vfs(#[from] agentflare_store::Error),
+    #[error("harness error: {0}")]
+    Harness(#[from] harness::HarnessError),
 }
 
 impl Serialize for AppError {

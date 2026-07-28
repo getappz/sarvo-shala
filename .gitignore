@@ -13,3 +13,4 @@ docs/*.md
 
 # reference clones for research — not part of this project's source
 .refs/
+refs/
