@@ -48,6 +48,7 @@ pub fn run() {
             commands::tutor::tutor_turn,
             commands::tutor::get_chat_history,
             commands::vfs::vfs_create_folder,
+            commands::vfs::vfs_list_all,
             commands::vfs::vfs_list_folders,
             commands::vfs::vfs_rename_folder,
             commands::vfs::vfs_delete_folder,

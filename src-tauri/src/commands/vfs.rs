@@ -26,6 +26,14 @@ pub fn vfs_create_folder(
 }
 
 #[tauri::command]
+pub fn vfs_list_all(state: State<Db>) -> Result<(Vec<Folder>, Vec<FolderItem>), AppError> {
+    Ok((
+        folders::list_all_folders(&state)?,
+        folders::list_all_items(&state)?,
+    ))
+}
+
+#[tauri::command]
 pub fn vfs_list_folders(state: State<Db>, parent_id: Option<i64>) -> Result<Vec<Folder>, AppError> {
     folders::list_folders(&state, parent_id)
 }
