@@ -1,12 +1,13 @@
 import Tooltip from "./ui/Tooltip";
 
-export type Tab = "home" | "subjects" | "tutor" | "progress" | "settings";
+export type Tab = "home" | "subjects" | "tutor" | "progress" | "library" | "settings";
 
 const ICON: Record<Tab, string> = {
   home: "⌂",
   subjects: "▤",
   tutor: "💬",
   progress: "★",
+  library: "🗂",
   settings: "⚙",
 };
 
@@ -19,7 +20,7 @@ export default function NavRail({
   onTabChange: (t: Tab) => void;
   t: (k: string) => string;
 }) {
-  const items: Tab[] = ["home", "subjects", "tutor", "progress", "settings"];
+  const items: Tab[] = ["home", "subjects", "tutor", "progress", "library", "settings"];
 
   return (
     <nav className="flex flex-col items-center gap-2 w-16 py-4 bg-surface border-r border-border">
