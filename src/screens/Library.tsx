@@ -28,17 +28,18 @@ export default function Library({ t }: { t: (k: string) => string }) {
   >(null);
 
   const refetch = useCallback(() => {
-    Promise.all([vfsListAll(), vfsListDocuments()])
-      .then(([[fs, its], docs]) => {
+    vfsListAll()
+      .then(([fs, its]) => {
         setFolders(fs);
         setItems(its);
-        setDocuments(docs);
       })
       .catch(() => {
         setFolders([]);
         setItems([]);
-        setDocuments([]);
       });
+    vfsListDocuments()
+      .then(setDocuments)
+      .catch(() => setDocuments([]));
   }, []);
 
   useEffect(() => {

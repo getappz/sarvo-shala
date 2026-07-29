@@ -58,24 +58,22 @@ export default function NoteEditor({
     });
     crepeRef.current = crepe;
 
-    function scheduleSave() {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        const current = docRef.current;
-        if (!current || !crepeRef.current) return;
-        try {
-          const content = crepeRef.current.getMarkdown();
-          const saved = await vfsImportDocument(
-            folderId,
-            current.path,
-            current.title,
-            content
-          );
+    function doSave(content: string) {
+      const current = docRef.current;
+      if (!current) return;
+      vfsImportDocument(folderId, current.path, current.title, content)
+        .then((saved) => {
           docRef.current = saved;
           setSaveFailed(false);
-        } catch {
-          setSaveFailed(true);
-        }
+        })
+        .catch(() => setSaveFailed(true));
+    }
+
+    function scheduleSave() {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        saveTimer.current = null;
+        if (crepeRef.current) doSave(crepeRef.current.getMarkdown());
       }, AUTOSAVE_DELAY_MS);
     }
 
@@ -86,7 +84,11 @@ export default function NoteEditor({
 
     return () => {
       container.removeEventListener("input", scheduleSave);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        doSave(crepe.getMarkdown());
+      }
       crepe.destroy();
       crepeRef.current = null;
     };

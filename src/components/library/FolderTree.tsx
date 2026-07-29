@@ -7,12 +7,14 @@ function Node({
   selectedFolderId,
   onSelect,
   onDeleteFolder,
+  t,
 }: {
   node: FolderTreeNode;
   depth: number;
   selectedFolderId: number | null;
   onSelect: (id: number | null) => void;
   onDeleteFolder: (id: number) => void;
+  t: (k: string) => string;
 }) {
   const selected = node.folder.id === selectedFolderId;
   return (
@@ -28,7 +30,7 @@ function Node({
           {node.folder.title}
         </button>
         <button
-          aria-label="delete folder"
+          aria-label={t("deleteFolder")}
           onClick={() => onDeleteFolder(node.folder.id)}
           className="text-ink-muted px-2 text-xs"
         >
@@ -45,6 +47,7 @@ function Node({
               selectedFolderId={selectedFolderId}
               onSelect={onSelect}
               onDeleteFolder={onDeleteFolder}
+              t={t}
             />
           ))}
         </ul>
@@ -89,6 +92,7 @@ export default function FolderTree({
             selectedFolderId={selectedFolderId}
             onSelect={onSelect}
             onDeleteFolder={onDeleteFolder}
+            t={t}
           />
         ))}
       </ul>
