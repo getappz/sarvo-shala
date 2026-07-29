@@ -1,6 +1,6 @@
 use crate::db::Db;
 use crate::error::AppError;
-use crate::models::{Folder, FolderItem, VfsDocument, VfsDocumentMatch};
+use crate::models::{Folder, FolderItem, VfsDocument, VfsDocumentMatch, VfsDocumentSummary};
 use crate::vfs::folders;
 use crate::vfs::Vfs;
 use tauri::State;
@@ -113,4 +113,9 @@ pub fn vfs_search_documents(
     }
     let limit = limit.clamp(1, 100) as usize;
     vfs.search_documents(&query, limit)
+}
+
+#[tauri::command]
+pub fn vfs_list_documents(vfs: State<Vfs>) -> Result<Vec<VfsDocumentSummary>, AppError> {
+    vfs.list_documents()
 }

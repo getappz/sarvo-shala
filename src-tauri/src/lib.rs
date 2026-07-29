@@ -57,7 +57,8 @@ pub fn run() {
             commands::vfs::vfs_import_document,
             commands::vfs::vfs_get_document,
             commands::vfs::vfs_delete_document,
-            commands::vfs::vfs_search_documents
+            commands::vfs::vfs_search_documents,
+            commands::vfs::vfs_list_documents
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -304,3 +304,13 @@ export function vfsSearchDocuments(
     limit,
   });
 }
+
+export interface VfsDocumentSummary {
+  id: string;
+  path: string;
+  title: string;
+}
+
+export function vfsListDocuments(): Promise<VfsDocumentSummary[]> {
+  return invoke<VfsDocumentSummary[]>("vfs_list_documents");
+}

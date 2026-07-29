@@ -8,11 +8,13 @@ import Button from "../ui/Button";
 
 export default function ContentPane({
   items,
+  docTitles,
   onOpenDocument,
   onCreateNote,
   t,
 }: {
   items: FolderItem[];
+  docTitles: Map<string, string>;
   onOpenDocument: (itemId: string) => void;
   onCreateNote: () => void;
   t: (k: string) => string;
@@ -58,7 +60,7 @@ export default function ContentPane({
                   onClick={() => onOpenDocument(r.id)}
                   className="w-full text-left px-3 py-2 rounded-lg border border-border bg-surface text-sm"
                 >
-                  <div className="font-semibold">{r.path}</div>
+                  <div className="font-semibold">{docTitles.get(r.id) ?? r.path}</div>
                   <div className="text-xs text-ink-muted">{r.snippet}</div>
                 </button>
               </li>
@@ -75,7 +77,7 @@ export default function ContentPane({
                 onClick={() => onOpenDocument(item.itemId)}
                 className="w-full text-left px-3 py-2 rounded-lg border border-border bg-surface text-sm"
               >
-                📄 {item.itemId}
+                📄 {docTitles.get(item.itemId) ?? item.itemId}
               </button>
             </li>
           ))}

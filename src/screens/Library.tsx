@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   vfsListAll,
+  vfsListDocuments,
   vfsCreateFolder,
   vfsImportDocument,
   vfsDeleteFolder,
   type Folder,
   type FolderItem,
+  type VfsDocumentSummary,
 } from "../lib/ipc";
 import { buildFolderTree } from "../lib/folderTree";
 import FolderTree from "../components/library/FolderTree";
@@ -16,6 +18,7 @@ import ConfirmDialog from "../components/ui/ConfirmDialog";
 export default function Library({ t }: { t: (k: string) => string }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [items, setItems] = useState<FolderItem[]>([]);
+  const [documents, setDocuments] = useState<VfsDocumentSummary[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(
     null
   );
@@ -25,14 +28,16 @@ export default function Library({ t }: { t: (k: string) => string }) {
   >(null);
 
   const refetch = useCallback(() => {
-    vfsListAll()
-      .then(([fs, its]) => {
+    Promise.all([vfsListAll(), vfsListDocuments()])
+      .then(([[fs, its], docs]) => {
         setFolders(fs);
         setItems(its);
+        setDocuments(docs);
       })
       .catch(() => {
         setFolders([]);
         setItems([]);
+        setDocuments([]);
       });
   }, []);
 
@@ -89,6 +94,10 @@ export default function Library({ t }: { t: (k: string) => string }) {
 
   const tree = buildFolderTree(folders);
   const visibleItems = items.filter((i) => i.folderId === selectedFolderId);
+  const docTitles = useMemo(
+    () => new Map(documents.map((d) => [d.id, d.title])),
+    [documents]
+  );
 
   return (
     <>
@@ -120,6 +129,7 @@ export default function Library({ t }: { t: (k: string) => string }) {
           ) : (
             <ContentPane
               items={visibleItems}
+              docTitles={docTitles}
               onOpenDocument={setOpenDocumentId}
               onCreateNote={handleCreateNote}
               t={t}
