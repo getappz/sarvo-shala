@@ -65,9 +65,7 @@ impl Vfs {
     /// Titles/paths for every live document, for UI listings that need to
     /// label a `folder_items` row (which only stores an opaque doc id).
     pub fn list_documents(&self) -> Result<Vec<VfsDocumentSummary>, AppError> {
-        let docs = self
-            .store
-            .doc_list_summaries(PROJECT_ID, usize::MAX, 0)?;
+        let docs = self.store.doc_list_summaries(PROJECT_ID, usize::MAX, 0)?;
         Ok(docs.into_iter().map(Into::into).collect())
     }
 }
@@ -133,7 +131,10 @@ mod tests {
         vfs.put_document("notes/b.md", "B", "content b").unwrap();
 
         let summaries = vfs.list_documents().unwrap();
-        let mut titles = summaries.iter().map(|s| s.title.as_str()).collect::<Vec<_>>();
+        let mut titles = summaries
+            .iter()
+            .map(|s| s.title.as_str())
+            .collect::<Vec<_>>();
         titles.sort();
         assert_eq!(titles, vec!["A", "B"]);
         let _ = std::fs::remove_file(&p);
