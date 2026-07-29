@@ -23,6 +23,11 @@ const en: Dict = {
   noItemsInFolder: "Nothing here yet.",
   failedToSave: "Couldn't save — will retry.",
   searchPlaceholder: "Search your library…",
+  deleteFolder: "Delete folder",
+  deleteFolderConfirm:
+    "This folder and its subfolders will be removed. Items inside move to the top level instead of being deleted. Continue?",
+  cancel: "Cancel",
+  delete: "Delete",
   todaysMission: "Today's mission",
   dueCount: "concepts due for review",
   allCaughtUp: "You're all caught up. Nicely done!",
@@ -94,6 +99,11 @@ const hi: Dict = {
   noItemsInFolder: "यहाँ अभी कुछ नहीं है।",
   failedToSave: "सहेजा नहीं जा सका — पुनः प्रयास होगा।",
   searchPlaceholder: "अपनी लाइब्रेरी में खोजें…",
+  deleteFolder: "फ़ोल्डर हटाएं",
+  deleteFolderConfirm:
+    "यह फ़ोल्डर और इसकी उप-फ़ोल्डर हट जाएंगी। इसकी वस्तुएं हटाई नहीं जाएंगी, ऊपरी स्तर पर चली जाएंगी। जारी रखें?",
+  cancel: "रद्द करें",
+  delete: "हटाएं",
   todaysMission: "आज का लक्ष्य",
   dueCount: "अवधारणाएँ समीक्षा हेतु शेष",
   allCaughtUp: "आप पूरी तरह अद्यतित हैं। बहुत बढ़िया!",

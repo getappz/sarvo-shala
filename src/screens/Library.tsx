@@ -3,6 +3,7 @@ import {
   vfsListAll,
   vfsCreateFolder,
   vfsImportDocument,
+  vfsDeleteFolder,
   type Folder,
   type FolderItem,
 } from "../lib/ipc";
@@ -10,6 +11,7 @@ import { buildFolderTree } from "../lib/folderTree";
 import FolderTree from "../components/library/FolderTree";
 import ContentPane from "../components/library/ContentPane";
 import NoteEditor from "../components/library/NoteEditor";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 
 export default function Library({ t }: { t: (k: string) => string }) {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -18,6 +20,9 @@ export default function Library({ t }: { t: (k: string) => string }) {
     null
   );
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
+  const [pendingDeleteFolderId, setPendingDeleteFolderId] = useState<
+    number | null
+  >(null);
 
   const refetch = useCallback(() => {
     vfsListAll()
@@ -63,43 +68,73 @@ export default function Library({ t }: { t: (k: string) => string }) {
     }
   }
 
+  function requestDeleteFolder(folderId: number) {
+    setPendingDeleteFolderId(folderId);
+  }
+
+  async function confirmDeleteFolder() {
+    if (pendingDeleteFolderId == null) return;
+    try {
+      await vfsDeleteFolder(pendingDeleteFolderId);
+      if (selectedFolderId === pendingDeleteFolderId) {
+        setSelectedFolderId(null);
+      }
+      refetch();
+    } catch {
+      // matches this app's existing per-call .catch() convention
+    } finally {
+      setPendingDeleteFolderId(null);
+    }
+  }
+
   const tree = buildFolderTree(folders);
   const visibleItems = items.filter((i) => i.folderId === selectedFolderId);
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-[minmax(180px,280px)_minmax(0,1fr)] gap-4">
-      <FolderTree
-        tree={tree}
-        selectedFolderId={selectedFolderId}
-        onSelect={setSelectedFolderId}
-        onCreateFolder={handleCreateFolder}
-        t={t}
-      />
-      <div>
-        {openDocumentId && (
-          <button
-            className="text-sm text-ink-muted underline mb-2"
-            onClick={() => setOpenDocumentId(null)}
-          >
-            ← {t("library")}
-          </button>
-        )}
-        {openDocumentId ? (
-          <NoteEditor
-            key={openDocumentId}
-            documentId={openDocumentId}
-            folderId={selectedFolderId}
-            t={t}
-          />
-        ) : (
-          <ContentPane
-            items={visibleItems}
-            onOpenDocument={setOpenDocumentId}
-            onCreateNote={handleCreateNote}
-            t={t}
-          />
-        )}
+    <>
+      <div className="max-w-5xl mx-auto grid grid-cols-[minmax(180px,280px)_minmax(0,1fr)] gap-4">
+        <FolderTree
+          tree={tree}
+          selectedFolderId={selectedFolderId}
+          onSelect={setSelectedFolderId}
+          onCreateFolder={handleCreateFolder}
+          onDeleteFolder={requestDeleteFolder}
+          t={t}
+        />
+        <div>
+          {openDocumentId && (
+            <button
+              className="text-sm text-ink-muted underline mb-2"
+              onClick={() => setOpenDocumentId(null)}
+            >
+              ← {t("library")}
+            </button>
+          )}
+          {openDocumentId ? (
+            <NoteEditor
+              key={openDocumentId}
+              documentId={openDocumentId}
+              folderId={selectedFolderId}
+              t={t}
+            />
+          ) : (
+            <ContentPane
+              items={visibleItems}
+              onOpenDocument={setOpenDocumentId}
+              onCreateNote={handleCreateNote}
+              t={t}
+            />
+          )}
+        </div>
       </div>
-    </div>
+      {pendingDeleteFolderId != null && (
+        <ConfirmDialog
+          message={t("deleteFolderConfirm")}
+          onConfirm={confirmDeleteFolder}
+          onCancel={() => setPendingDeleteFolderId(null)}
+          t={t}
+        />
+      )}
+    </>
   );
 }

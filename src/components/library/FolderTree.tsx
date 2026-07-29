@@ -6,24 +6,35 @@ function Node({
   depth,
   selectedFolderId,
   onSelect,
+  onDeleteFolder,
 }: {
   node: FolderTreeNode;
   depth: number;
   selectedFolderId: number | null;
   onSelect: (id: number | null) => void;
+  onDeleteFolder: (id: number) => void;
 }) {
   const selected = node.folder.id === selectedFolderId;
   return (
     <li>
-      <button
-        onClick={() => onSelect(node.folder.id)}
-        style={{ paddingLeft: `${depth * 16 + 12}px` }}
-        className={`w-full text-left py-1.5 pr-3 rounded-lg text-sm ${
-          selected ? "bg-primary/10 text-primary font-semibold" : "text-ink"
-        }`}
-      >
-        {node.folder.title}
-      </button>
+      <div className="flex items-center">
+        <button
+          onClick={() => onSelect(node.folder.id)}
+          style={{ paddingLeft: `${depth * 16 + 12}px` }}
+          className={`flex-1 text-left py-1.5 pr-3 rounded-lg text-sm ${
+            selected ? "bg-primary/10 text-primary font-semibold" : "text-ink"
+          }`}
+        >
+          {node.folder.title}
+        </button>
+        <button
+          aria-label="delete folder"
+          onClick={() => onDeleteFolder(node.folder.id)}
+          className="text-ink-muted px-2 text-xs"
+        >
+          ✕
+        </button>
+      </div>
       {node.children.length > 0 && (
         <ul className="list-none m-0 p-0">
           {node.children.map((child) => (
@@ -33,6 +44,7 @@ function Node({
               depth={depth + 1}
               selectedFolderId={selectedFolderId}
               onSelect={onSelect}
+              onDeleteFolder={onDeleteFolder}
             />
           ))}
         </ul>
@@ -46,12 +58,14 @@ export default function FolderTree({
   selectedFolderId,
   onSelect,
   onCreateFolder,
+  onDeleteFolder,
   t,
 }: {
   tree: FolderTreeNode[];
   selectedFolderId: number | null;
   onSelect: (id: number | null) => void;
   onCreateFolder: (parentId: number | null) => void;
+  onDeleteFolder: (id: number) => void;
   t: (k: string) => string;
 }) {
   return (
@@ -74,6 +88,7 @@ export default function FolderTree({
             depth={0}
             selectedFolderId={selectedFolderId}
             onSelect={onSelect}
+            onDeleteFolder={onDeleteFolder}
           />
         ))}
       </ul>
