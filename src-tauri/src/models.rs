@@ -197,3 +197,21 @@ impl From<agentflare_store::documents::DocMatch> for VfsDocumentMatch {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VfsDocumentSummary {
+    pub id: String,
+    pub path: String,
+    pub title: String,
+}
+
+impl From<agentflare_store::documents::DocumentSummary> for VfsDocumentSummary {
+    fn from(d: agentflare_store::documents::DocumentSummary) -> Self {
+        VfsDocumentSummary {
+            id: d.id,
+            path: d.path,
+            title: d.title,
+        }
+    }
+}

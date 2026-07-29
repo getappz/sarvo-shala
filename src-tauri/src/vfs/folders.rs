@@ -155,6 +155,30 @@ pub fn remove_item(
     Ok(changed > 0)
 }
 
+pub fn list_all_folders(db: &Db) -> Result<Vec<Folder>, AppError> {
+    let rows = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id, parent_id, title, sort_order, created_at, updated_at
+             FROM folders ORDER BY sort_order, id",
+        )?;
+        let mapped = stmt.query_map([], map_folder)?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    Ok(rows)
+}
+
+pub fn list_all_items(db: &Db) -> Result<Vec<FolderItem>, AppError> {
+    let rows = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id, folder_id, item_type, item_id, sort_order, created_at
+             FROM folder_items ORDER BY sort_order, id",
+        )?;
+        let mapped = stmt.query_map([], map_folder_item)?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()
+    })?;
+    Ok(rows)
+}
+
 pub fn list_items(db: &Db, folder_id: Option<i64>) -> Result<Vec<FolderItem>, AppError> {
     let rows = db.with(|c| {
         let sql = "SELECT id, folder_id, item_type, item_id, sort_order, created_at
@@ -278,6 +302,33 @@ mod tests {
 
         let items = list_items(&db, Some(folder.id)).unwrap();
         assert_eq!(items.len(), 1);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn list_all_returns_every_folder_and_item_regardless_of_nesting() {
+        let (db, p) = temp_db();
+        let parent = create_folder(&db, None, "Parent", 1000).unwrap();
+        let child = create_folder(&db, Some(parent.id), "Child", 1001).unwrap();
+        add_item(&db, None, "document", "doc_root", 1002).unwrap();
+        add_item(&db, Some(child.id), "document", "doc_nested", 1003).unwrap();
+
+        let all_folders = list_all_folders(&db).unwrap();
+        assert_eq!(
+            all_folders.iter().map(|f| f.id).collect::<Vec<_>>(),
+            vec![parent.id, child.id],
+            "must include folders at every nesting depth, not just roots"
+        );
+
+        let all_items = list_all_items(&db).unwrap();
+        assert_eq!(
+            all_items
+                .iter()
+                .map(|i| i.item_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["doc_root", "doc_nested"],
+            "must include items regardless of which folder (or root) they're in"
+        );
         let _ = std::fs::remove_file(&p);
     }
 

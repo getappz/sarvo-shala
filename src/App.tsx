@@ -10,6 +10,7 @@ import Quiz from "./screens/Quiz";
 import Progress from "./screens/Progress";
 import Tutor from "./screens/Tutor";
 import SettingsScreen from "./screens/Settings";
+import Library from "./screens/Library";
 
 export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -78,6 +79,7 @@ export default function App() {
             <p>{t("subjects")}</p>
           ))}
         {tab === "progress" && <Progress chapter={selectedChapter} t={t} />}
+        {tab === "library" && <Library t={t} />}
         {tab === "settings" && (
           <SettingsScreen
             language={settings.language as Lang}

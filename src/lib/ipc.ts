@@ -190,3 +190,127 @@ export function tutorTurn(
     fsmState,
   });
 }
+
+// ── VFS (Library) types and commands ─────────────────────────────────
+
+export interface Folder {
+  id: number;
+  parentId: number | null;
+  title: string;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FolderItem {
+  id: number;
+  folderId: number | null;
+  itemType: string;
+  itemId: string;
+  sortOrder: number;
+  createdAt: number;
+}
+
+export interface VfsDocument {
+  id: string;
+  path: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface VfsDocumentMatch {
+  id: string;
+  path: string;
+  snippet: string;
+  score: number;
+}
+
+export function vfsListAll(): Promise<[Folder[], FolderItem[]]> {
+  return invoke<[Folder[], FolderItem[]]>("vfs_list_all");
+}
+
+export function vfsCreateFolder(
+  parentId: number | null,
+  title: string
+): Promise<Folder> {
+  return invoke<Folder>("vfs_create_folder", { parentId, title });
+}
+
+export function vfsListFolders(parentId: number | null): Promise<Folder[]> {
+  return invoke<Folder[]>("vfs_list_folders", { parentId });
+}
+
+export function vfsRenameFolder(
+  folderId: number,
+  title: string
+): Promise<void> {
+  return invoke<void>("vfs_rename_folder", { folderId, title });
+}
+
+export function vfsDeleteFolder(folderId: number): Promise<void> {
+  return invoke<void>("vfs_delete_folder", { folderId });
+}
+
+export function vfsListFolderItems(
+  folderId: number | null
+): Promise<FolderItem[]> {
+  return invoke<FolderItem[]>("vfs_list_folder_items", { folderId });
+}
+
+export function vfsRemoveFolderItem(
+  folderId: number | null,
+  itemType: string,
+  itemId: string
+): Promise<boolean> {
+  return invoke<boolean>("vfs_remove_folder_item", {
+    folderId,
+    itemType,
+    itemId,
+  });
+}
+
+export function vfsImportDocument(
+  folderId: number | null,
+  path: string,
+  title: string,
+  content: string
+): Promise<VfsDocument> {
+  return invoke<VfsDocument>("vfs_import_document", {
+    folderId,
+    path,
+    title,
+    content,
+  });
+}
+
+export function vfsGetDocument(
+  id: string
+): Promise<VfsDocument | null> {
+  return invoke<VfsDocument | null>("vfs_get_document", { id });
+}
+
+export function vfsDeleteDocument(id: string): Promise<boolean> {
+  return invoke<boolean>("vfs_delete_document", { id });
+}
+
+export function vfsSearchDocuments(
+  query: string,
+  limit: number
+): Promise<VfsDocumentMatch[]> {
+  return invoke<VfsDocumentMatch[]>("vfs_search_documents", {
+    query,
+    limit,
+  });
+}
+
+export interface VfsDocumentSummary {
+  id: string;
+  path: string;
+  title: string;
+}
+
+export function vfsListDocuments(): Promise<VfsDocumentSummary[]> {
+  return invoke<VfsDocumentSummary[]>("vfs_list_documents");
+}

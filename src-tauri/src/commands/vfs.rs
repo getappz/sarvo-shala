@@ -1,6 +1,6 @@
 use crate::db::Db;
 use crate::error::AppError;
-use crate::models::{Folder, FolderItem, VfsDocument, VfsDocumentMatch};
+use crate::models::{Folder, FolderItem, VfsDocument, VfsDocumentMatch, VfsDocumentSummary};
 use crate::vfs::folders;
 use crate::vfs::Vfs;
 use tauri::State;
@@ -23,6 +23,14 @@ pub fn vfs_create_folder(
         return Err(AppError::BadInput("title must not be empty".into()));
     }
     folders::create_folder(&state, parent_id, title, now())
+}
+
+#[tauri::command]
+pub fn vfs_list_all(state: State<Db>) -> Result<(Vec<Folder>, Vec<FolderItem>), AppError> {
+    Ok((
+        folders::list_all_folders(&state)?,
+        folders::list_all_items(&state)?,
+    ))
 }
 
 #[tauri::command]
@@ -105,4 +113,9 @@ pub fn vfs_search_documents(
     }
     let limit = limit.clamp(1, 100) as usize;
     vfs.search_documents(&query, limit)
+}
+
+#[tauri::command]
+pub fn vfs_list_documents(vfs: State<Vfs>) -> Result<Vec<VfsDocumentSummary>, AppError> {
+    vfs.list_documents()
 }

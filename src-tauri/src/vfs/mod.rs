@@ -10,7 +10,7 @@
 pub mod folders;
 
 use crate::error::AppError;
-use crate::models::{VfsDocument, VfsDocumentMatch};
+use crate::models::{VfsDocument, VfsDocumentMatch, VfsDocumentSummary};
 use agentflare_store::Store;
 use std::path::Path;
 
@@ -60,6 +60,13 @@ impl Vfs {
     ) -> Result<Vec<VfsDocumentMatch>, AppError> {
         let matches = self.store.doc_search(PROJECT_ID, query, limit)?;
         Ok(matches.into_iter().map(Into::into).collect())
+    }
+
+    /// Titles/paths for every live document, for UI listings that need to
+    /// label a `folder_items` row (which only stores an opaque doc id).
+    pub fn list_documents(&self) -> Result<Vec<VfsDocumentSummary>, AppError> {
+        let docs = self.store.doc_list_summaries(PROJECT_ID, usize::MAX, 0)?;
+        Ok(docs.into_iter().map(Into::into).collect())
     }
 }
 
@@ -114,6 +121,22 @@ mod tests {
         let hits = vfs.search_documents("mitochondria", 10).unwrap();
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].path, "notes/a.md");
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn list_documents_returns_titles_and_paths_for_every_live_document() {
+        let (vfs, p) = temp_vfs();
+        vfs.put_document("notes/a.md", "A", "content a").unwrap();
+        vfs.put_document("notes/b.md", "B", "content b").unwrap();
+
+        let summaries = vfs.list_documents().unwrap();
+        let mut titles = summaries
+            .iter()
+            .map(|s| s.title.as_str())
+            .collect::<Vec<_>>();
+        titles.sort();
+        assert_eq!(titles, vec!["A", "B"]);
         let _ = std::fs::remove_file(&p);
     }
 }
