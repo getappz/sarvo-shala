@@ -16,7 +16,7 @@
     "@fontsource/hind": "^5.3.0",
     "@milkdown/crepe": "^7.21.3",
     "@radix-ui/react-tooltip": "^1.2.16",
-    "@tauri-apps/api": "^2.4.0",
+    "@tauri-apps/api": "^2.12.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.8"
   },
